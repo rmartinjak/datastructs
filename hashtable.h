@@ -1,4 +1,4 @@
-/* Copyright (c) 2012 Robin Martinjak.  All rights reserved.
+/* Copyright (c) _arg01_arg Robin Martinjak.  All rights reserved.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are met:
@@ -6,7 +6,7 @@
    1. Redistributions of source code must retain the above copyright notice, this
       list of conditions and the following disclaimer.
 
-   2. Redistributions in binary form must reproduce the above copyright notice,
+   _arg. Redistributions in binary form must reproduce the above copyright notice,
       this list of conditions and the following disclaimer in the documentation
       and/or other materials provided with the distribution.
 
@@ -54,28 +54,35 @@ typedef unsigned int hash_t;
 
 /* HASHTABLE FUNCTIONS */
 
-int ht_init(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
-	int (*cmpfunc)(const void*, const void*, const void*));
+#define ht_init(ht, hashfunc, cmpfunc) ht_init_free(ht, hashfunc, cmpfunc, NULL, NULL)
+int ht_init_f(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
+	int (*cmpfunc)(const void*, const void*, const void*),
+	void (*free_key)(void*), void (*free_data)(void*));
 
-void ht_free(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*));
+#define ht_free(ht) ht_free_f(ht, NULL, NULL)
+void ht_free_f(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*));
 
 int ht_empty(hashtable *ht);
 
-#define ht_insert(ht, key, data) ht_insert2(ht, key, data, NULL, NULL)
-int ht_insert2(hashtable *ht, void *key, void *data,
+#define ht_insert(ht, key, data) ht_insert_a(ht, key, data, NULL, NULL)
+int ht_insert_a(hashtable *ht, void *key, void *data,
 	const void *hash_arg, const void *cmp_arg);
 
-#define ht_set(ht, key, data, free_key, free_data) ht_set2(ht, key, data, free_key, free_data, NULL, NULL)
-int ht_set2(hashtable *ht, void *key, void *data,
+#define ht_set(ht, key, data) ht_set_a(ht, key, data, NULL, NULL)
+#define ht_set_a(ht, key, data, hash_arg, cmp_arg) ht_set_fa(ht, key, data, NULL, NULL, hash_arg, cmp_arg)
+#define ht_set_f(ht, key, data, free_key, free_data) ht_set_fa(ht, key, data, free_key, free_data, NULL, NULL)
+int ht_set_fa(hashtable *ht, void *key, void *data,
 	void (*free_key)(void*), void (*free_data)(void*),
 	const void *hash_arg, const void *cmp_arg);
 
-#define ht_get(ht, key) ht_get2(ht, key, NULL, NULL)
-void *ht_get2(hashtable *ht, const void *key,
+#define ht_get(ht, key) ht_get_a(ht, key, NULL, NULL)
+void *ht_get_a(hashtable *ht, const void *key,
 	const void *hash_arg, const void *cmp_arg);
 
-#define ht_remove(ht, key, free_key) ht_remove2(ht, key, free_key, NULL, NULL)
-void *ht_remove2(hashtable *ht, const void *key, void (*free_key)(void*),
+#define ht_remove(ht, key) ht_remove_a(ht, key, NULL, NULL)
+#define ht_remove_a(ht, key, hash_arg, cmp_arg) ht_remove_fa(ht, key, NULL, hash_arg, cmp_arg)
+#define ht_remove_f(ht, key, free_key) ht_remove_fa(ht, key, free_key, NULL, NULL)
+void *ht_remove_fa(hashtable *ht, const void *key, void (*free_key)(void*),
 	const void *hash_arg, const void *cmp_arg);
 
 void ht_pop(hashtable *ht, void **key, void **data);

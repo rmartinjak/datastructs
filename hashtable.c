@@ -30,6 +30,8 @@
 struct hashtable {
 	hash_t (*hash)(const void*, const void*);
 	int (*cmp)(const void*, const void*, const void*);
+	void (*free_key)(void*);
+	void (*free_data)(void*);
 	size_t n_items;
 	size_t n_buckets;
 	struct htbucket *buckets;
@@ -85,7 +87,10 @@ static htbucket *ht_alloc_buckets(int n) {
 	return ret;
 }
 
-int ht_init(hashtable **ht, hash_t(*hashfunc)(const void*, const void*), int(*cmpfunc)(const void*, const void*, const void*)) {
+int ht_init_f(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
+	int (*cmpfunc)(const void*, const void*, const void*),
+	void (*free_key)(void*), void (*free_data)(void*))
+	{
 	*ht = malloc(sizeof(hashtable));
 
 	if (*ht == NULL) {
@@ -99,6 +104,9 @@ int ht_init(hashtable **ht, hash_t(*hashfunc)(const void*, const void*), int(*cm
 	(*ht)->hash = hashfunc;
 	(*ht)->cmp = cmpfunc;
 
+	(*ht)->free_key = free_key;
+	(*ht)->free_data = free_data;
+
 	(*ht)->buckets = ht_alloc_buckets((*ht)->n_buckets);
 
 	if ((*ht)->buckets)
@@ -110,16 +118,20 @@ int ht_init(hashtable **ht, hash_t(*hashfunc)(const void*, const void*), int(*cm
 	}
 }
 
-void ht_free(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*)) {
+#define FREE_KEY (free_key) ? free_key : ht->free_key
+#define FREE_DATA (free_data) ? free_data : ht->free_data
+void ht_free_f(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*)) {
 	int n = ht->n_buckets;
 
 	while (n--) {
-		htbucket_clear(ht->buckets + n, free_key, free_data);
+		htbucket_clear(ht->buckets + n, FREE_KEY, FREE_DATA);
 	}
 	free(ht->buckets);
 
 	free(ht);
 }
+#undef FREE_KEY
+#undef FREE_DATA
 
 static int ht_resize(hashtable *ht, int n) {
 	size_t i;
@@ -158,15 +170,27 @@ static int ht_resize(hashtable *ht, int n) {
 	return HT_OK;
 }
 
-int ht_set2(hashtable *ht, void *key, void *data, void (*free_key)(void*), void (*free_data)(void*), const void *hash_arg, const void *cmp_arg) {
+#define FREE_DATA(p) (free_data) ? free_data(p) : ht->free_data(p)
+int ht_set_fa(hashtable *ht, void *key, void *data,
+	void (*free_key)(void*), void (*free_data)(void*),
+	const void *hash_arg, const void *cmp_arg)
+	{
 	void *data_old;
-	data_old = ht_remove2(ht, key, free_key, hash_arg, cmp_arg);
-	if (data_old)
-		free_data(data_old);
-	return ht_insert2(ht, key, data, hash_arg, cmp_arg);
+	if (!free_data && !ht->free_data) {
+		errno = EINVAL;
+		return HT_ERROR;
+	}
+	data_old = ht_remove_fa(ht, key, free_key, hash_arg, cmp_arg);
+	if (data_old) {
+		FREE_DATA(data_old);
+	}
+	return ht_insert_a(ht, key, data, hash_arg, cmp_arg);
 }
+#undef FREE_DATA
 
-int ht_insert2(hashtable *ht, void *key, void *data, const void *hash_arg, const void *cmp_arg) {
+int ht_insert_a(hashtable *ht, void *key, void *data,
+	const void *hash_arg, const void *cmp_arg)
+	{
 	int res;
 	hash_t k;
 
@@ -182,13 +206,15 @@ int ht_insert2(hashtable *ht, void *key, void *data, const void *hash_arg, const
 	if (res == HT_OK) {
 		ht->n_items++;
 		if (ht->n_items > ht->n_buckets)
-			ht_resize(ht, ht->n_buckets * 2);
+			ht_resize(ht, ht->n_buckets << 1);
 	}
 
 	return res;
 }
 
-void *ht_get2(hashtable *ht, const void *key, const void *hash_arg, const void *cmp_arg) {
+void *ht_get_a(hashtable *ht, const void *key,
+	const void *hash_arg, const void *cmp_arg)
+	{
 	hash_t k;
 
 	if (!ht || !key) {
@@ -199,7 +225,9 @@ void *ht_get2(hashtable *ht, const void *key, const void *hash_arg, const void *
 	return htbucket_get(ht->buckets + k, key, ht->cmp, cmp_arg);
 }
 
-void *ht_remove2(hashtable *ht, const void *key, void (*free_key)(void*), const void *hash_arg, const void *cmp_arg) {
+void *ht_remove_fa(hashtable *ht, const void *key,
+	void (*free_key)(void*), const void *hash_arg, const void *cmp_arg)
+	{
 	hash_t k;
 	void *res;
 
@@ -215,7 +243,7 @@ void *ht_remove2(hashtable *ht, const void *key, void (*free_key)(void*), const 
 		ht->n_items--;
 		/* items < buckets/4 -> resize */
 		if (ht->n_items * 4 < ht->n_buckets) {
-			ht_resize(ht, ht->n_buckets / 2);
+			ht_resize(ht, ht->n_buckets >> 1);
 		}
 	}
 	return res;
@@ -285,7 +313,9 @@ static int htbucket_empty(htbucket *b) {
 }
 
 /* insert item into bucket */
-static int htbucket_insert(htbucket *b, void *key, void *data, int (*cmp)(const void*, const void*, const void*), const void *cmp_arg) {
+static int htbucket_insert(htbucket *b, void *key, void *data,
+	int (*cmp)(const void*, const void*, const void*), const void *cmp_arg)
+	{
 	struct htbucket_item *p, *ins;
 
 	if (!b || !key || !data || !cmp) {
@@ -348,7 +378,7 @@ static void *htbucket_remove(htbucket *b, const void *key, void(*free_key)(void*
 	struct htbucket_item *p, *del;
 	void *ret;
 
-	if (!b || !key || !cmp) {
+	if (!b || !key || !free_key || !cmp) {
 		errno = EINVAL;
 		return NULL;
 	}
@@ -359,7 +389,7 @@ static void *htbucket_remove(htbucket *b, const void *key, void(*free_key)(void*
 		del = b->root;
 		b->root = del->next;
 		ret = del->data;
-		free_key(del->key);
+		free_key(del);
 		free(del);
 		return ret;
 	}
@@ -369,7 +399,7 @@ static void *htbucket_remove(htbucket *b, const void *key, void(*free_key)(void*
 			del = p->next;
 			p->next = del->next;
 			ret = del->data;
-			free_key(del->key);
+			free_key(del);
 			free(del);
 			return ret;
 		}

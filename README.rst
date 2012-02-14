@@ -20,9 +20,13 @@ initializing a hashtable::
 
 	int ht_init(hashtable **ht, hash_t (*hashfunc)(const void*, const void*)
 				int (*cmpfunc)(const void*, const void*, const void*);
+	int ht_init_f(hashtable **ht, hash_t (*hashfunc)(const void*, const void*)
+				int (*cmpfunc)(const void*, const void*, const void*),
+				void (*free_key)(void*), void (*free_data)(void*);
 
 free a hashtable and all keys/data::
 
+	void ht_free(hashtable *ht);
 	void ht_free(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*));
 
 determine if hashtable is empty::
@@ -35,26 +39,40 @@ data operations
 insert (not overwrite!) an item::
 
 	int ht_insert(hashtable *ht, void *key, void *data);
-	int ht_insert2(hashtable *ht, void *key, void *data, const void *hash_arg, const void *cmp_arg);
+
+	int ht_insert_a(hashtable *ht, void *key, void *data,
+			const void *hash_arg, const void *cmp_arg);
 
 overwrite existing / insert new item::
 
-	int ht_set(hashtable *ht, void *key, void *data,
-				void (*free_key)(void*), void (*free_data)(void*));
-	int ht_set2(hashtable *ht, void *key, void *data,
-				void (*free_key)(void*), void (*free_data)(void*),
-				const void *hash_arg, const void *cmp_arg);
+	int ht_set(hashtable *ht, void *key, void *data);
+
+	int ht_set_a(hashtable *ht, void *key, void *data,
+			const void *hash_arg, const void *cmp_arg);
+
+	int ht_set_f(hashtable *ht, void *key, void *data,
+			void (*free_key)(void*), void (*free_data)(void*));
+
+	int ht_set_fa(hashtable *ht, void *key, void *data,
+			void (*free_key)(void*), void (*free_data)(void*),
+			const void *hash_arg, const void *cmp_arg);
 
 retrieve stored data::
 
 	void *ht_get(hashtable *ht, const void *key);
-	void *ht_get2(hashtable *ht, const void *key, const void *hash_arg, const void *cmp_arg);
+	void *ht_get_a(hashtable *ht, const void *key,
+			const void *hash_arg, const void *cmp_arg);
 
 remove and retrieve data::
 
-	void *ht_remove(hashtable *ht, const void *key, void (*free_key)(void*));
-	void *ht_remove2(hashtable *ht, const void *key, void (*free_key)(void*),
-						const void *hash_arg, const void *cmp_arg);
+	void *ht_remove(hashtable *ht, const void *key);
+	void *ht_remove_a(hashtable *ht, const void *key,
+			const void *hash_arg, const void *cmp_arg);
+	void *ht_remove_f(hashtable *ht, const void *key,
+			void (*free_key)(void*));
+	void *ht_remove_fa(hashtable *ht, const void *key,
+			void (*free_key)(void*),
+			const void *hash_arg, const void *cmp_arg);
 
 pop (retrieve and remove) the first item (first item in first non-empty bucket)::
 
