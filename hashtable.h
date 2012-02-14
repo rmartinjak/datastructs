@@ -55,27 +55,28 @@ typedef unsigned int hash_t;
 /* HASHTABLE FUNCTIONS */
 
 int ht_init(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
-			int (*cmpfunc)(const void*, const void*, const void*));
+	int (*cmpfunc)(const void*, const void*, const void*));
 
 void ht_free(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*));
 
 int ht_empty(hashtable *ht);
 
-#define ht_insert(ht, key, data) ht_set2(ht, key, data, NULL, NULL)
-int ht_insert2(hashtable *ht, void *key, void *data, const void *hash_arg, const void *cmp_arg);
+#define ht_insert(ht, key, data) ht_insert2(ht, key, data, NULL, NULL)
+int ht_insert2(hashtable *ht, void *key, void *data,
+	const void *hash_arg, const void *cmp_arg);
 
-#define ht_set(ht, key, data, free_key, free_data) ht_get2(ht, key, data, free_key, free_data, NULL, NULL)
+#define ht_set(ht, key, data, free_key, free_data) ht_set2(ht, key, data, free_key, free_data, NULL, NULL)
 int ht_set2(hashtable *ht, void *key, void *data,
-			void (*free_key)(void*), void (*free_data)(void*),
-			const void *hash_arg, const void *cmp_arg);
+	void (*free_key)(void*), void (*free_data)(void*),
+	const void *hash_arg, const void *cmp_arg);
 
 #define ht_get(ht, key) ht_get2(ht, key, NULL, NULL)
-void *ht_get2(hashtable *ht, const void *key, const void *hash_arg, const void *cmp_arg);
+void *ht_get2(hashtable *ht, const void *key,
+	const void *hash_arg, const void *cmp_arg);
 
-#define ht_remove(ht, key, free_key) ht_remove2(ht, key, free_key)
-void *ht_remove2(hashtable *ht, const void *key,
-					void (*free_key)(void*),
-					const void *hash_arg, const void *cmp_arg);
+#define ht_remove(ht, key, free_key) ht_remove2(ht, key, free_key, NULL, NULL)
+void *ht_remove2(hashtable *ht, const void *key, void (*free_key)(void*),
+	const void *hash_arg, const void *cmp_arg);
 
 void ht_pop(hashtable *ht, void **key, void **data);
 
