@@ -5,13 +5,11 @@ hashtable.h defines:
 
 types
 =====
-
 ::
 
-hashtable	- hashtable object to operate on
-htiter		- object to iterate through all items in a hashtable
-hash_t		- return value of hash function, castable to size_t
-			  (at the moment: unsigned long)
+	hashtable	- hashtable object to operate on
+	htiter		- object to iterate through all items in a hashtable
+	hash_t		- return value of hash function, castable to size_t (atm: unsigned long)
 
 functions and macros
 ====================
