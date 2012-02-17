@@ -101,7 +101,7 @@ Detailed description
 ====================
 
 Creating a hashtable
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 1. Define a hash function that takes two ``const void*`` arguments and returns
    an integer value of type ``hash_t``:
