@@ -6,7 +6,7 @@ hashtable.h
 Overview
 ========
 
-types
+Types
 ~~~~~
 hashtable
 	hashtable object to operate on
@@ -15,10 +15,11 @@ htiter
 hash_t
     return value of hash function, castable to size_t (atm: unsigned long)
 
-functions and macros
+
+Functions and macros
 ~~~~~~~~~~~~~~~~~~~~
 
-hashtable management
+Hashtable management
 --------------------
 initializing a hashtable::
 
@@ -42,7 +43,7 @@ determine if hashtable is empty::
 	int ht_empty(hashtable *ht);
 
 
-data operations
+Data operations
 ---------------
 insert (not overwrite!) an item::
 
@@ -86,7 +87,7 @@ pop (retrieve & remove) the first item (first item in first non-empty bucket)::
 
 	void ht_pop(hashtable *ht, void **key, void **data);
 
-iteration
+Iteration
 ---------
 create iteration object (can be free'd with free())::
 
@@ -103,37 +104,49 @@ Detailed description
 Creating a hashtable
 ~~~~~~~~~~~~~~~~~~~~
 
+Description
+-----------
 1. Define a hash function that takes two ``const void*`` arguments and returns
    an integer value of type ``hash_t``:
-   - The first argument will be the *key* of a hashtable entry (-> the value
-     to be hashed)
-   - The second argument is passed when using one of the
-   ``[...]_a()`` or ``[...]_fa()`` functions, else ``NULL``
+
+	- The first argument will be the *key* of a hashtable entry (-> the value
+	  to be hashed)
+	- The second argument is passed when using one of the
+	  ``[...]_a()`` or ``[...]_fa()`` functions, else ``NULL``
 
 2. Define a compare function that takes three ``const void*`` arguments and
    returns an ``int`` with value 0 if the first two arguments are
    *semantically equal* (like i.e. ``strcmp()``)
-   - The first two argument will be two *keys* to compare
-   - The third argument is, again, used with ``[...]_a()`` or ``[...]_fa()``
-   	 (see above)
+
+	- The first two argument will be two *keys* to compare
+	- The third argument is, again, used with ``[...]_a()`` or ``[...]_fa()``
 
 3. Define functions that take one *void** argument which will free *key* and
    *data* of your hashtable entries.
 
 4. Declare and initialize a hashtable* object, using one of the following
    functions:
-   - ``ht_init()`` which takes the following arguments:
-      1. A pointer to your hashtable* object
-	  2. Your hash function
-	  3. Your compare function
-   - ``ht_init_f()`` which takes the same arguemts as ``ht_init()`` plus
-      4. Your function to free *keys*
-	  5. Your function to free *data*
+
+	- ``ht_init()`` which takes the following arguments:
+
+		1. A pointer to your hashtable* object
+		2. Your hash function
+		3. Your compare function
+
+	- ``ht_init_f()`` which takes the same arguemts as ``ht_init()`` plus
+
+		4. Your function to free *keys*
+		5. Your function to free *data*
+
+
    If you use ``ht_init()`` you can still free keys and data by using the
    ``[...]_f()`` or ``[...]_fa()`` functions which also take freeing functions
    as arguments
 
-Example::
+Example
+-------
+::
+
 	#include <stdio.h>
 	#include <stdlib.h>
 	#include <string.h>
