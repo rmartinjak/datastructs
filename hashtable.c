@@ -231,7 +231,7 @@ void *ht_remove_fa(hashtable *ht, const void *key,
 	hash_t k;
 	void *res;
 
-	if (!ht || !key || !free_key) {
+	if (!ht || !key) {
 		errno = EINVAL;
 		return NULL;
 	}
@@ -378,7 +378,7 @@ static void *htbucket_remove(htbucket *b, const void *key, void(*free_key)(void*
 	struct htbucket_item *p, *del;
 	void *ret;
 
-	if (!b || !key || !free_key || !cmp) {
+	if (!b || !key || !cmp) {
 		errno = EINVAL;
 		return NULL;
 	}

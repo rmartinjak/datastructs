@@ -54,7 +54,7 @@ typedef unsigned int hash_t;
 
 /* HASHTABLE FUNCTIONS */
 
-#define ht_init(ht, hashfunc, cmpfunc) ht_init_free(ht, hashfunc, cmpfunc, NULL, NULL)
+#define ht_init(ht, hashfunc, cmpfunc) ht_init_f(ht, hashfunc, cmpfunc, NULL, NULL)
 int ht_init_f(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
 	int (*cmpfunc)(const void*, const void*, const void*),
 	void (*free_key)(void*), void (*free_data)(void*));
