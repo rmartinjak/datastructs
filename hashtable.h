@@ -59,7 +59,7 @@ int ht_init_f(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
 	int (*cmpfunc)(const void*, const void*, const void*),
 	void (*free_key)(void*), void (*free_data)(void*));
 
-#define ht_free(ht) ht_free_f(ht, NULL, NULL)
+void ht_free(hashtable *ht);
 void ht_free_f(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*));
 
 int ht_empty(hashtable *ht);
@@ -69,7 +69,8 @@ int ht_insert_a(hashtable *ht, void *key, void *data,
 	const void *hash_arg, const void *cmp_arg);
 
 #define ht_set(ht, key, data) ht_set_a(ht, key, data, NULL, NULL)
-#define ht_set_a(ht, key, data, hash_arg, cmp_arg) ht_set_fa(ht, key, data, NULL, NULL, hash_arg, cmp_arg)
+int ht_set_a(hashtable *ht, void *key, void *data,
+	const void *hash_arg, const void *cmp_arg);
 #define ht_set_f(ht, key, data, free_key, free_data) ht_set_fa(ht, key, data, free_key, free_data, NULL, NULL)
 int ht_set_fa(hashtable *ht, void *key, void *data,
 	void (*free_key)(void*), void (*free_data)(void*),
@@ -80,12 +81,14 @@ void *ht_get_a(hashtable *ht, const void *key,
 	const void *hash_arg, const void *cmp_arg);
 
 #define ht_remove(ht, key) ht_remove_a(ht, key, NULL, NULL)
-#define ht_remove_a(ht, key, hash_arg, cmp_arg) ht_remove_fa(ht, key, NULL, hash_arg, cmp_arg)
+void *ht_remove_a(hashtable *ht, const void *key,
+	const void *hash_arg, const void *cmp_arg);
 #define ht_remove_f(ht, key, free_key) ht_remove_fa(ht, key, free_key, NULL, NULL)
-void *ht_remove_fa(hashtable *ht, const void *key, void (*free_key)(void*),
+void *ht_remove_fa(hashtable *ht, const void *key,
+	void (*free_key)(void*),
 	const void *hash_arg, const void *cmp_arg);
 
-void ht_pop(hashtable *ht, void **key, void **data);
+void *ht_pop(hashtable *ht, void **key, void **data);
 
 /* ITERATOR FUNCTIONS */
 htiter *ht_iter(hashtable *ht);
