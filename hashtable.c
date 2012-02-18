@@ -269,11 +269,15 @@ void *ht_pop(hashtable *ht, void **key, void **data)
 		return NULL;
 	}
 
+	if (ht_empty(ht))
+		return NULL;
+
 	for (i = 0; i < ht->n_buckets; i++) {
 		if (!htbucket_empty(ht->buckets + i)) {
 			return htbucket_pop(ht->buckets + i, key, data);
 		}
 	}
+	return NULL;
 }
 
 
