@@ -21,6 +21,11 @@ httest : $(OBJDIR) $(OBJ)
 	@echo CC -o $@
 	@$(CC) $(LDFLAGS) -o httest $(OBJ)
 
+doc : hashtable.h doxyfile
+	@echo generating doc
+	@doxygen doxyfile >/dev/null
+	
+
 clean :
 	@echo cleaning
 	@rm -f httest

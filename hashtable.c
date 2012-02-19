@@ -84,7 +84,6 @@ static void htbucket_clear(htbucket *b,
 /* HASHTABLE FUNCTIONS */
 /***********************/
 
-/* init */
 int ht_init_f(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
 	int (*cmpfunc)(const void*, const void*, const void*),
 	void (*free_key)(void*), void (*free_data)(void*))
@@ -360,17 +359,21 @@ htiter *ht_iter(hashtable *ht)
 
 int htiter_next(htiter *it, void **key, void **data)
 {
+	/* still another item in current bucket */
 	if (it->cur && it->cur->next) {
 		it->cur = it->cur->next;
 	}
+	/* no more items in bucket */
 	else {
-		/* not the first item */
+		/* if !it->cur = fresh iterator, else use next bucket */
 		if (it->cur)
 			it->b++;
 
+		/* skip empty buckets */
 		while (it->b < it->ht->n_buckets && htbucket_empty(it->ht->buckets + it->b))
 			it->b++;
 
+		/* no more buckets! */
 		if (it->b >= it->ht->n_buckets) {
 			*key = NULL;
 			*data = NULL;
