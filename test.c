@@ -44,11 +44,14 @@ int my_cmp(const void *key1, const void *key2, const void *arg) {
 				"remove: \"r <key>\n"
 #define PROMPT "> "
 
-int main(void) {
+int main(int argc, char **argv) {
 	hashtable *ht;
 	htiter *it;
 
+	FILE *f;
+
 	char input[1024];
+	char input2[1024];
 	char *p1, *p2;
 	size_t len_k, len_d;
 	char *key, *data;
@@ -56,6 +59,23 @@ int main(void) {
 	int exit = 0;
 
 	ht_init_f(&ht, my_hash, my_cmp, free, free);
+
+	if (argc >= 1) {
+		printf("lol opening file\n");
+		f = fopen(argv[1], "r");
+		if (!f) {
+			perror("opening file");
+			return EXIT_FAILURE;
+		}
+
+		while (fscanf(f, "%s %s", input, input2) != EOF) {
+			key = strdup(input);
+			data = strdup(input2);
+			ht_insert(ht, key, data);
+		}
+
+		fclose(f);
+	}
 
 	do {
 		printf(PROMPT);
