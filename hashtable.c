@@ -23,21 +23,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "hashtable.h"
+#include "pgroups.h"
 
 #include <stdlib.h>
+#include <time.h>
 #include <errno.h>
 
 #define FREE_KEY(p) if (free_key) free_key(p)
 #define FREE_DATA(p) if (free_data) free_data(p)
 
+#define RAND(min, max) ((rand() % (max)-(min)) + (min))
+#define PRIME(group) (primes[group][RAND(0,PGROUP_ELEMENTS)])
+
 /* structs */
 struct hashtable {
-    hash_t (*hash)(const void*, const void*);
-    int (*cmp)(const void*, const void*, const void*);
+    ht_hashfunc_t hash;
+    ht_cmpfunc_t cmp;
     void (*free_key)(void*);
     void (*free_data)(void*);
     size_t n_items;
     size_t n_buckets;
+    size_t pgroup;
     struct htbucket *buckets;
 };
 
@@ -96,8 +102,11 @@ int ht_init_f(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
         return HT_ERROR;
     }
 
+    srand(time(NULL));
+
     (*ht)->n_items = 0;
-    (*ht)->n_buckets = HT_BUCKETS_MIN;
+    (*ht)->n_buckets = PRIME(0);
+    (*ht)->pgroup = 0;
 
     (*ht)->hash = hashfunc;
     (*ht)->cmp = cmpfunc;
@@ -193,7 +202,7 @@ int ht_insert_a(hashtable *ht, void *key, void *data,
     if (res == HT_OK) {
         ht->n_items++;
         if (ht->n_items > ht->n_buckets)
-            ht_resize(ht, ht->n_buckets << 1);
+            ht_resize(ht, 1);
     }
 
     return res;
@@ -244,7 +253,7 @@ void *ht_remove_fa(hashtable *ht, const void *key,
         ht->n_items--;
         /* items < buckets/4 -> resize */
         if (ht->n_items * 4 < ht->n_buckets) {
-            ht_resize(ht, ht->n_buckets >> 1);
+            ht_resize(ht, 0);
         }
     }
     return res;
@@ -303,15 +312,26 @@ static htbucket *ht_alloc_buckets(int n)
     return ret;
 }
 
-static int ht_resize(hashtable *ht, int n)
+static int ht_resize(hashtable *ht, int grow)
 {
+    size_t pg, n;
     size_t i;
     hash_t k;
     htbucket *newbuckets;
     void *key, *data;
 
-    if (n > HT_BUCKETS_MAX || n < HT_BUCKETS_MIN)
-        return HT_OK;
+    if (grow) {
+        if (ht->pgroup >= PGROUP_COUNT)
+            return HT_OK;
+        pg = ht->pgroup+1;
+    }
+    if (!grow) {
+        if (ht->pgroup == 0)
+            return HT_OK;
+        pg = ht->pgroup-1;
+    }
+
+    n = PRIME(pg);
 
     if ((newbuckets = ht_alloc_buckets(n)) == NULL) {
         errno = ENOMEM;
@@ -337,6 +357,7 @@ static int ht_resize(hashtable *ht, int n)
     free(ht->buckets);
     ht->buckets = newbuckets;
     ht->n_buckets = n;
+    ht->pgroup = pg;
 
     return HT_OK;
 }
