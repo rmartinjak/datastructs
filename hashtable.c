@@ -397,8 +397,8 @@ int htiter_next(htiter *it, void **key, void **data)
 
         /* no more buckets! */
         if (it->b >= it->ht->n_buckets) {
-            *key = NULL;
-            *data = NULL;
+            if (key) *key = NULL;
+            if (data) *data = NULL;
             return 0;
         }
 
