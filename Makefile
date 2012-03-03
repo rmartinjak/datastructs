@@ -19,7 +19,7 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c
 
 httest : $(OBJDIR) $(OBJ)
 	@echo CC -o $@
-	@$(CC) $(LDFLAGS) -o httest $(OBJ)
+	@$(CC) $(CFLAGS) -o httest $(OBJ) $(LDFLAGS)
 
 doc : hashtable.h doxyfile
 	@echo generating doc
