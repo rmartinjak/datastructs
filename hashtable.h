@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* DEFINES */
 /***********/
 
-/*! return codes
+/*!
  *  \def        HT_OK
  *  \brief      returned on success
  *  \ingroup    def
@@ -61,7 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HT_ERROR -1
 #define HT_EXIST 1
 
-/*! other defs
+/*!
  *  \def        HT_BUCKETS_MIN
  *  \brief      minimum number of buckets
  *  \ingroup    def
