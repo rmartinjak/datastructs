@@ -27,11 +27,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <errno.h>
 
+
+/*========*/
+/* MACROS */
+/*========*/
+
 #define FREE_KEY(p) if (free_key) free_key(p)
 #define FREE_DATA(p) if (free_data) free_data(p)
 
-/* structs */
-struct hashtable {
+
+/*=========*/
+/* STRUCTS */
+/*=========*/
+
+struct hashtable
+{
     hash_t (*hash)(const void*, const void*);
     int (*cmp)(const void*, const void*, const void*);
     void (*free_key)(void*);
@@ -41,27 +51,41 @@ struct hashtable {
     struct htbucket *buckets;
 };
 
-struct htiter {
+struct htiter
+{
     struct hashtable *ht;
     size_t b;
     struct htbucket_item *cur;
 };
 
-typedef struct htbucket {
+typedef struct htbucket
+{
     struct htbucket_item *root;
 } htbucket;
 
-struct htbucket_item {
+struct htbucket_item
+{
     void *key;
     void *data;
     struct htbucket_item *next;
 };
 
-/* static prototypes */
-static htbucket *ht_alloc_buckets(int n);
+
+/*===================*/
+/* STATIC PROTOTYPES */
+/*===================*/
+
+/*---------------------------*/
+/* internal management funcs */
+/*---------------------------*/
 
 static int ht_resize(hashtable *ht, int n);
+static htbucket *ht_alloc_buckets(int n);
 
+
+/*--------------*/
+/* bucket funcs */
+/*--------------*/
 
 static int htbucket_empty(htbucket *b);
 
@@ -81,9 +105,13 @@ static void htbucket_clear(htbucket *b,
         void (*free_key)(void*), void (*free_data)(void*));
 
 
-/***********************/
+/*=====================*/
 /* HASHTABLE FUNCTIONS */
-/***********************/
+/*=====================*/
+
+/*------------*/
+/* initialize */
+/*------------*/
 
 int ht_init_f(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
         int (*cmpfunc)(const void*, const void*, const void*),
@@ -117,7 +145,10 @@ int ht_init_f(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
 }
 
 
+/*------*/
 /* free */
+/*------*/
+
 void ht_free(hashtable *ht)
 {
     if (!ht)
@@ -143,7 +174,10 @@ void ht_free_f(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*))
 }
 
 
+/*-----*/
 /* set */
+/*-----*/
+
 int ht_set_a(hashtable *ht, void *key, void *data,
         const void *hash_arg, const void *cmp_arg)
 {
@@ -174,7 +208,10 @@ int ht_set_fa(hashtable *ht, void *key, void *data,
 }
 
 
+/*--------*/
 /* insert */
+/*--------*/
+
 int ht_insert_a(hashtable *ht, void *key, void *data,
         const void *hash_arg, const void *cmp_arg)
 {
@@ -200,7 +237,10 @@ int ht_insert_a(hashtable *ht, void *key, void *data,
 }
 
 
+/*-----*/
 /* get */
+/*-----*/
+
 void *ht_get_a(hashtable *ht, const void *key,
         const void *hash_arg, const void *cmp_arg)
 {
@@ -215,7 +255,10 @@ void *ht_get_a(hashtable *ht, const void *key,
 }
 
 
+/*--------*/
 /* remove */
+/*--------*/
+
 void *ht_remove_a(hashtable *ht, const void *key,
         const void *hash_arg, const void *cmp_arg)
 {
@@ -251,7 +294,10 @@ void *ht_remove_fa(hashtable *ht, const void *key,
 }
 
 
+/*-------*/
 /* other */
+/*-------*/
+
 int ht_empty(hashtable *ht)
 {
     if (!ht)
@@ -281,7 +327,9 @@ void *ht_pop(hashtable *ht, void **key, void **data)
 }
 
 
-/* internal management funcs */
+/*-------------------------------*/
+/* internal management functions */
+/*-------------------------------*/
 
 static htbucket *ht_alloc_buckets(int n)
 {
@@ -342,10 +390,11 @@ static int ht_resize(hashtable *ht, int n)
 }
 
 
-/**********************/
+/*====================*/
 /* ITERATOR FUNCTIONS */
-/**********************/
+/*====================*/
 
+/* create iterator */
 htiter *ht_iter(hashtable *ht)
 {
     htiter *it;
@@ -358,6 +407,8 @@ htiter *ht_iter(hashtable *ht)
     return it;
 }
 
+
+/* get next key/data pair */
 int htiter_next(htiter *it, void **key, void **data)
 {
     /* still another item in current bucket */
@@ -392,10 +443,11 @@ int htiter_next(htiter *it, void **key, void **data)
 }
 
 
-/********************/
+/*==================*/
 /* BUCKET FUNCTIONS */
-/********************/
+/*==================*/
 
+/* is the bucket empty? */
 static int htbucket_empty(htbucket *b)
 {
     return (b->root == NULL);
