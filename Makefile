@@ -1,5 +1,3 @@
-include $(CONFIG_MK)
-
 CC = cc
 CFLAGS = -g -Wall
 LDFLAGS =
