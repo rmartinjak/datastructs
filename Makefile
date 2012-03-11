@@ -7,9 +7,14 @@ LIBS =
 
 AR = ar
 ARFLAGS = rs
+ECHO = echo
+MKDIR = mkdir
+SED = sed
+DOXYGEN = doxygen
 
 SRCDIR = src
 OBJDIR = obj
+DOCDIR = doc
 DESTDIR = .
 
 
@@ -20,10 +25,10 @@ all : archive
 
 
 $(OBJDIR) :
-	@mkdir $(OBJDIR)
+	@$(MKDIR) $(OBJDIR)
 
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
-	@echo CC -c $<
+	@$(ECHO) CC -c $<
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
 
@@ -34,18 +39,18 @@ $(DESTDIR)/datastructs.a : $(OBJDIR) $(OBJ)
 
 
 httest : $(OBJDIR) $(OBJ)
-	@echo CC -o $@
+	@$(ECHO) CC -o $@
 	@$(CC) $(CFLAGS) -o httest $(SRCDIR)/httest.c $(OBJ) $(LDFLAGS)
 
-
 doc : src/hashtable.h doxyfile
-	@echo generating doc
-	@doxygen doxyfile >/dev/null
+	@$(MKDIR) $(DOCDIR) 2> /dev/null || true
+	@$(ECHO) generating documenation in $(DOCDIR)/
+	@$(SED) -e s:DOXYGEN_OUTPUT_DIR:$(DOCDIR): doxyfile | $(DOXYGEN) - 2>&1 > /dev/null
 
 clean :
-	@echo cleaning
-	@rm -f httest
-	@rm -rf doc
-	@rm -rf $(OBJDIR)
+	@$(ECHO) cleaning
+	@$(RM) -f httest
+	@$(RM) -rf doc
+	@$(RM) -rf $(OBJDIR)
 
-.PHONY: clean
+.PHONY: clean doc
