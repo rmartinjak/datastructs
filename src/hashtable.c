@@ -28,8 +28,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <errno.h>
 
 
+/***********/
+/* DEFINES */
+/***********/
+
 /*========*/
-/* MACROS */
+/* macros */
 /*========*/
 
 #define FREE_KEY(p) if (free_key) free_key(p)
@@ -37,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /*=========*/
-/* STRUCTS */
+/* structs */
 /*=========*/
 
 struct hashtable
@@ -72,7 +76,7 @@ struct htbucket_item
 
 
 /*===================*/
-/* STATIC PROTOTYPES */
+/* static prototypes */
 /*===================*/
 
 /*---------------------------*/
@@ -89,24 +93,230 @@ static htbucket *ht_alloc_buckets(int n);
 
 static int htbucket_empty(htbucket *b);
 
+/* insert item into bucket */
 static int htbucket_insert(htbucket *b, void *key, void *data,
         int (*cmp)(const void*, const void*, const void*), const void *cmp_arg);
 
+/* return data from bucket item with given key */
 static void *htbucket_get(htbucket *b, const void *key,
         int (*cmp)(const void*, const void*, const void*), const void *cmp_arg);
 
+/* remove and return item with the given key */
 static void *htbucket_remove(htbucket *b, const void *key,
         int (*cmp)(const void*, const void*, const void*), const void *cmp_arg,
         void (*free_key)(void*));
 
+/* remove first item from bucket, storing key and data in the passed pointers */
 static void *htbucket_pop(htbucket *b, void **key, void **data);
 
+/* remove all items from the bucket, using the passed free_*() functions on key and data */
 static void htbucket_clear(htbucket *b,
         void (*free_key)(void*), void (*free_data)(void*));
 
 
+/********************/
+/* STATIC FUNCTIONS */
+/********************/
+
+/*==================*/
+/* bucket functions */
+/*==================*/
+
+/* is the bucket empty? */
+static int htbucket_empty(htbucket *b)
+{
+    return (b->root == NULL);
+}
+
+static int htbucket_insert(htbucket *b, void *key, void *data,
+        int (*cmp)(const void*, const void*, const void*), const void *cmp_arg)
+{
+    struct htbucket_item *p, *ins;
+
+
+    /* initialize item */
+    ins = malloc(sizeof(struct htbucket_item));
+    if (!ins) {
+        errno = ENOMEM;
+        return HT_ERROR;
+    }
+    ins->key = key;
+    ins->data = data;
+    ins->next = NULL;
+
+    /* empty htbucket */
+    if (!b->root) {
+        b->root = ins;
+        return HT_OK;
+    }
+    /* compare with root */
+    else if (cmp(key, b->root->key, cmp_arg) == 0) {
+        free(ins);
+        return HT_EXIST;
+    }
+
+    /* compare with child until p is last item */
+    for (p = b->root; p->next; p = p->next) {
+        if (cmp(key, p->next->key, cmp_arg) == 0) {
+            free(ins);
+            return HT_EXIST;
+        }
+    }
+
+    p->next = ins;
+    return HT_OK;
+}
+
+static void *htbucket_get(htbucket *b, const void *key,
+        int (*cmp)(const void*, const void*, const void*), const void *cmp_arg)
+{
+    struct htbucket_item *p;
+
+    for (p = b->root; p; p = p->next) {
+        if (cmp(key, p->key, cmp_arg) == 0) {
+            return p->data;
+        }
+    }
+    return NULL;
+}
+
+static void *htbucket_remove(htbucket *b, const void *key,
+        int (*cmp)(const void*, const void*, const void*), const void *cmp_arg,
+        void(*free_key)(void*))
+{
+    struct htbucket_item *p, *del;
+    void *ret;
+
+    if (!b->root)
+        return NULL;
+    else if (cmp(key, b->root->key, cmp_arg) == 0) {
+        del = b->root;
+        b->root = del->next;
+        ret = del->data;
+        FREE_KEY(del->key);
+        free(del);
+        return ret;
+    }
+
+    for (p = b->root; p->next; p = p->next) {
+        if (cmp(key, p->next->key, cmp_arg) == 0) {
+            del = p->next;
+            p->next = del->next;
+            ret = del->data;
+            FREE_KEY(del->key);
+            free(del);
+            return ret;
+        }
+    }
+    return NULL;
+}
+
+static void *htbucket_pop(htbucket *b, void **key, void **data)
+{
+    struct htbucket_item *p;
+
+    if (!b->root) {
+        *key = NULL;
+        *data = NULL;
+        return NULL;
+    }
+
+    p = b->root;
+    b->root = p->next;
+
+    *key = p->key;
+    *data = p->data;
+    free(p);
+
+    return *data;
+}
+
+static void htbucket_clear(htbucket *b, void (*free_key)(void*),  void (*free_data)(void*))
+{
+    struct htbucket_item *p, *del;
+
+    p = b->root;
+
+    while (p) {
+        del = p;
+        p = p->next;
+
+        FREE_KEY(del->key);
+        FREE_DATA(del->data);
+        free(del);
+    }
+}
+
+
+/*===============================*/
+/* internal management functions */
+/*===============================*/
+
+static htbucket *ht_alloc_buckets(int n)
+{
+    htbucket *ret;
+    htbucket *p;
+
+    if ((ret = malloc(n * sizeof(htbucket))) == NULL) {
+        errno = ENOMEM;
+        return NULL;
+    }
+
+    p = ret;
+
+    while (n--) {
+        p->root = NULL;
+        ++p;
+    }
+
+    return ret;
+}
+
+static int ht_resize(hashtable *ht, int n)
+{
+    size_t i;
+    hash_t k;
+    htbucket *newbuckets;
+    void *key, *data;
+
+    if (n > HT_BUCKETS_MAX || n < HT_BUCKETS_MIN)
+        return HT_OK;
+
+    if ((newbuckets = ht_alloc_buckets(n)) == NULL) {
+        errno = ENOMEM;
+        return HT_ERROR;
+    }
+
+    for (i=0; i<ht->n_buckets; ++i) {
+        while (1) {
+            htbucket_pop(ht->buckets + i, &key, &data);
+            /* no more items in bucket */
+            if (!key)
+                break;
+            /* store in new bucket */
+            k = (size_t)ht->hash(key, NULL) % n;
+
+            /* meh, errors here are ignored
+             * ENOMEM occurs, you have other problems
+             */
+            htbucket_insert(newbuckets + k, key, data, ht->cmp, NULL);
+        }
+    }
+
+    free(ht->buckets);
+    ht->buckets = newbuckets;
+    ht->n_buckets = n;
+
+    return HT_OK;
+}
+
+
+/**********************/
+/* EXPORTED FUNCTIONS */
+/**********************/
+
 /*=====================*/
-/* HASHTABLE FUNCTIONS */
+/* hashtable functions */
 /*=====================*/
 
 /*------------*/
@@ -327,71 +537,8 @@ void *ht_pop(hashtable *ht, void **key, void **data)
 }
 
 
-/*-------------------------------*/
-/* internal management functions */
-/*-------------------------------*/
-
-static htbucket *ht_alloc_buckets(int n)
-{
-    htbucket *ret;
-    htbucket *p;
-
-    if ((ret = malloc(n * sizeof(htbucket))) == NULL) {
-        errno = ENOMEM;
-        return NULL;
-    }
-
-    p = ret;
-
-    while (n--) {
-        p->root = NULL;
-        ++p;
-    }
-
-    return ret;
-}
-
-static int ht_resize(hashtable *ht, int n)
-{
-    size_t i;
-    hash_t k;
-    htbucket *newbuckets;
-    void *key, *data;
-
-    if (n > HT_BUCKETS_MAX || n < HT_BUCKETS_MIN)
-        return HT_OK;
-
-    if ((newbuckets = ht_alloc_buckets(n)) == NULL) {
-        errno = ENOMEM;
-        return HT_ERROR;
-    }
-
-    for (i=0; i<ht->n_buckets; ++i) {
-        while (1) {
-            htbucket_pop(ht->buckets + i, &key, &data);
-            /* no more items in bucket */
-            if (!key)
-                break;
-            /* store in new bucket */
-            k = (size_t)ht->hash(key, NULL) % n;
-
-            /* meh, errors here are ignored
-             * ENOMEM occurs, you have other problems
-             */
-            htbucket_insert(newbuckets + k, key, data, ht->cmp, NULL);
-        }
-    }
-
-    free(ht->buckets);
-    ht->buckets = newbuckets;
-    ht->n_buckets = n;
-
-    return HT_OK;
-}
-
-
 /*====================*/
-/* ITERATOR FUNCTIONS */
+/* iterator functions */
 /*====================*/
 
 /* create iterator */
@@ -440,139 +587,4 @@ int htiter_next(htiter *it, void **key, void **data)
     if (data)
         *data = it->cur->data;
     return 1;
-}
-
-
-/*==================*/
-/* BUCKET FUNCTIONS */
-/*==================*/
-
-/* is the bucket empty? */
-static int htbucket_empty(htbucket *b)
-{
-    return (b->root == NULL);
-}
-
-/* insert item into bucket */
-static int htbucket_insert(htbucket *b, void *key, void *data,
-        int (*cmp)(const void*, const void*, const void*), const void *cmp_arg)
-{
-    struct htbucket_item *p, *ins;
-
-
-    /* initialize item */
-    ins = malloc(sizeof(struct htbucket_item));
-    if (!ins) {
-        errno = ENOMEM;
-        return HT_ERROR;
-    }
-    ins->key = key;
-    ins->data = data;
-    ins->next = NULL;
-
-    /* empty htbucket */
-    if (!b->root) {
-        b->root = ins;
-        return HT_OK;
-    }
-    /* compare with root */
-    else if (cmp(key, b->root->key, cmp_arg) == 0) {
-        free(ins);
-        return HT_EXIST;
-    }
-
-    /* compare with child until p is last item */
-    for (p = b->root; p->next; p = p->next) {
-        if (cmp(key, p->next->key, cmp_arg) == 0) {
-            free(ins);
-            return HT_EXIST;
-        }
-    }
-
-    p->next = ins;
-    return HT_OK;
-}
-
-/* return data from bucket item with given key */
-static void *htbucket_get(htbucket *b, const void *key,
-        int (*cmp)(const void*, const void*, const void*), const void *cmp_arg)
-{
-    struct htbucket_item *p;
-
-    for (p = b->root; p; p = p->next) {
-        if (cmp(key, p->key, cmp_arg) == 0) {
-            return p->data;
-        }
-    }
-    return NULL;
-}
-
-/* remove and return item with the given key */
-static void *htbucket_remove(htbucket *b, const void *key,
-        int (*cmp)(const void*, const void*, const void*), const void *cmp_arg,
-        void(*free_key)(void*))
-{
-    struct htbucket_item *p, *del;
-    void *ret;
-
-    if (!b->root)
-        return NULL;
-    else if (cmp(key, b->root->key, cmp_arg) == 0) {
-        del = b->root;
-        b->root = del->next;
-        ret = del->data;
-        FREE_KEY(del->key);
-        free(del);
-        return ret;
-    }
-
-    for (p = b->root; p->next; p = p->next) {
-        if (cmp(key, p->next->key, cmp_arg) == 0) {
-            del = p->next;
-            p->next = del->next;
-            ret = del->data;
-            FREE_KEY(del->key);
-            free(del);
-            return ret;
-        }
-    }
-    return NULL;
-}
-
-/* remove first item from bucket, storing key and data in the passed pointers */
-static void *htbucket_pop(htbucket *b, void **key, void **data)
-{
-    struct htbucket_item *p;
-
-    if (!b->root) {
-        *key = NULL;
-        *data = NULL;
-        return NULL;
-    }
-
-    p = b->root;
-    b->root = p->next;
-
-    *key = p->key;
-    *data = p->data;
-    free(p);
-
-    return *data;
-}
-
-/* remove all items from the bucket, using the passed free_*() functions on key and data */
-static void htbucket_clear(htbucket *b, void (*free_key)(void*),  void (*free_data)(void*))
-{
-    struct htbucket_item *p, *del;
-
-    p = b->root;
-
-    while (p) {
-        del = p;
-        p = p->next;
-
-        FREE_KEY(del->key);
-        FREE_DATA(del->data);
-        free(del);
-    }
 }
