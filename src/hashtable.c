@@ -25,7 +25,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hashtable.h"
 
 #include <stdlib.h>
-#include <errno.h>
 
 
 /***********/
@@ -137,7 +136,6 @@ static int htbucket_insert(htbucket *b, void *key, void *data,
     /* initialize item */
     ins = malloc(sizeof(struct htbucket_item));
     if (!ins) {
-        errno = ENOMEM;
         return HT_ERROR;
     }
     ins->key = key;
@@ -258,7 +256,6 @@ static htbucket *ht_alloc_buckets(int n)
     htbucket *p;
 
     if ((ret = malloc(n * sizeof(htbucket))) == NULL) {
-        errno = ENOMEM;
         return NULL;
     }
 
@@ -283,7 +280,6 @@ static int ht_resize(hashtable *ht, int n)
         return HT_OK;
 
     if ((newbuckets = ht_alloc_buckets(n)) == NULL) {
-        errno = ENOMEM;
         return HT_ERROR;
     }
 
@@ -330,7 +326,6 @@ int ht_init_f(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
     *ht = malloc(sizeof(hashtable));
 
     if (!(*ht) || !hashfunc || !cmpfunc) {
-        errno = EINVAL;
         return HT_ERROR;
     }
 
@@ -349,7 +344,6 @@ int ht_init_f(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
         return HT_OK;
     else {
         free(*ht);
-        errno = ENOMEM;
         return HT_ERROR;
     }
 }
@@ -392,7 +386,6 @@ int ht_set_a(hashtable *ht, void *key, void *data,
         const void *hash_arg, const void *cmp_arg)
 {
     if (!ht || !key || !data) {
-        errno = EINVAL;
         return HT_ERROR;
     }
     return ht_set_fa(ht, key, data, ht->free_key, ht->free_data, hash_arg, cmp_arg);
@@ -405,7 +398,6 @@ int ht_set_fa(hashtable *ht, void *key, void *data,
     void *data_old;
 
     if (!ht || !key || !data) {
-        errno = EINVAL;
         return HT_ERROR;
     }
 
@@ -429,7 +421,6 @@ int ht_insert_a(hashtable *ht, void *key, void *data,
     hash_t k;
 
     if (!ht || !key || !data) {
-        errno = EINVAL;
         return HT_ERROR;
     }
 
@@ -457,7 +448,6 @@ void *ht_get_a(hashtable *ht, const void *key,
     hash_t k;
 
     if (!ht || !key) {
-        errno = EINVAL;
         return NULL;
     }
     k = (size_t)ht->hash(key, hash_arg) % ht->n_buckets;
@@ -486,7 +476,6 @@ void *ht_remove_fa(hashtable *ht, const void *key,
     void *res;
 
     if (!ht || !key) {
-        errno = EINVAL;
         return NULL;
     }
 
@@ -521,7 +510,6 @@ void *ht_pop(hashtable *ht, void **key, void **data)
     size_t i;
 
     if (!ht || !key || !data) {
-        errno = EINVAL;
         return NULL;
     }
 
