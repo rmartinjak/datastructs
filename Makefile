@@ -17,7 +17,7 @@ DESTDIR = .
 ARCHIVENAME = datastructs.a
 
 
-_OBJ = hashtable queue
+_OBJ = hashtable queue bst
 OBJ = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(_OBJ)))
 
 all : archive
