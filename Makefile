@@ -1,5 +1,5 @@
 CC = cc
-CFLAGS = -g -Wall
+CFLAGS = -g -ansi -pedantic -Wall
 LDFLAGS =
 LIBS =
 
@@ -14,6 +14,7 @@ SRCDIR = src
 OBJDIR = obj
 DOCDIR = doc
 DESTDIR = .
+ARCHIVENAME = datastructs.a
 
 
 _OBJ = hashtable
@@ -30,7 +31,7 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
 
-archive : $(DESTDIR)/datastructs.a
+archive : $(DESTDIR)/$(ARCHIVENAME)
 
 $(DESTDIR)/datastructs.a : $(OBJDIR) $(OBJ)
 	@$(AR) $(ARFLAGS) $@ $(OBJ)
