@@ -307,7 +307,7 @@ bst *bst_init(int (*cmp)(long, long))
         t->cmp = cmp;
         t->root = NULL;
     }
-    return 0;
+    return t;
 }
 
 void bst_free(bst *t, void (*callback)(void*))
