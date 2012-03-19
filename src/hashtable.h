@@ -22,10 +22,9 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*! \mainpage hashtable.h
- *  \author Robin Martinjak
- *
+/*!
  *  \file hashtable.h
+ *  \author Robin Martinjak
  *  \defgroup def     definitions
  *  \defgroup types   object types
  *  \defgroup mgmt    hash table management
@@ -37,14 +36,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HASHTABLE_H
 
 #include <stddef.h>
-#include <stdint.h>
-
 
 /***********/
 /* DEFINES */
 /***********/
 
-/*! return codes
+/*========*/
+/* macros */
+/*========*/
+
+/*!
  *  \def        HT_OK
  *  \brief      returned on success
  *  \ingroup    def
@@ -61,7 +62,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HT_ERROR -1
 #define HT_EXIST 1
 
-/*! other defs
+/*!
  *  \def        HT_BUCKETS_MIN
  *  \brief      minimum number of buckets
  *  \ingroup    def
@@ -74,9 +75,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HT_BUCKETS_MAX (1 << 18)
 
 
-/************/
-/* TYPEDEFS */
-/************/
+/*==========*/
+/* typedefs */
+/*==========*/
 
 /*! \brief      hash table instance
  *  \ingroup    types
