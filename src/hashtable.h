@@ -133,6 +133,8 @@ typedef int (*ht_cmpfunc_t) (const void*, const void*, const void*);
 /* FUNCTIONS */
 /*************/
 
+void ht_statistics(hashtable *ht, int *n_items, int *n_buckets, int *empty, int *one, int *gtone, int *max, double *avg);
+
 /*===============*/
 /* ht management */
 /*===============*/
@@ -471,5 +473,4 @@ htiter *ht_iter(hashtable *ht);
  *  \return     zero if no more key/data pair retrieved, non-zero else
  */
 int htiter_next(htiter *it, void **key, void **data);
-
 #endif
