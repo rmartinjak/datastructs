@@ -4,6 +4,23 @@
 
 #include "hashtable.h"
 
+#if _SVID_SOURCE || _BSD_SOURCE || _XOPEN_SOURCE >= 500 || _XOPEN_SOURCE && _XOPEN_SOURCE_EXTENDED ||  _POSIX_C_SOURCE >= 200809L
+#else
+char *strdup(const char *s)
+{
+    char *r;
+    size_t n = strlen(s)+1;
+
+    r = malloc(n);
+
+    if (r)
+        memcpy(r, s, n);
+
+    return r;
+}
+#endif
+
+
 hash_t my_hash(const void *key, const void *arg);
 int my_cmp(const void *key1, const void *key2, const void *arg);
 
