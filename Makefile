@@ -1,5 +1,5 @@
 CC = cc
-CPPFLAGS = -DPGROUP_COUNT=8 -DPGROUP_ELEMENTS=10
+CPPFLAGS = -DPGROUP_COUNT=20 -DPGROUP_ELEMENTS=10
 CFLAGS = -g -ansi -pedantic -Wall
 LDFLAGS =
 LIBS =
@@ -55,6 +55,7 @@ genpgroups: genpgroups.c
 	@$(CC) $(CPPFLAGS) $(CFLAGS) $< -o genpgroups
 clean :
 	@$(ECHO) cleaning
+	@$(RM) $(SRCDIR)/pgroups.h
 	@$(RM) -f httest
 	@$(RM) -rf doc
 	@$(RM) -rf $(OBJDIR)
