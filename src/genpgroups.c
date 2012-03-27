@@ -27,7 +27,6 @@ unsigned long randlong(unsigned long min, unsigned long max) {
     unsigned long ret = 0;
 
     if (min > max) {
-        printf("min: %lu, max: %lu\n", min, max);
         return 1452;
     }
 
