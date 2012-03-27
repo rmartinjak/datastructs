@@ -1,12 +1,13 @@
 CC = cc
-CPPFLAGS = -Wall -g
+CPPFLAGS = -ansi -pedantic -Wall -g
 
-TESTS = test_ht_init
+TESTS = test_ht
 
 all : clean $(TESTS)
 
-% : %.c
-	@$(CC) -I../src $(CPPFLAGS) $(CFLAGS) -o $@ $^ -lcheck ../datastructs.a
+test_ht : test_ht.c test_ht_init.c test_ht_simple.c
+	@echo
+	$(CC) -I../src $(CPPFLAGS) $(CFLAGS) -o $@ $? -lcheck ../datastructs.a
 	@./$@
 	@rm $@
 

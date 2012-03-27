@@ -52,6 +52,7 @@ Suite *ht_init_suite(void)
     return s;
 }
 
+/*
 int main(void)
 {
     int number_failed;
@@ -65,3 +66,4 @@ int main(void)
 
     return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
+*/
