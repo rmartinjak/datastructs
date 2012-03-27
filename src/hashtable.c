@@ -283,7 +283,7 @@ static int ht_resize(hashtable *ht, int grow)
     void *key, *data;
 
     if (grow) {
-        if (ht->pgroup >= PGROUP_COUNT)
+        if (ht->pgroup >= PGROUP_COUNT-1)
             return HT_OK;
         pg = ht->pgroup+1;
     }
