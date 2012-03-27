@@ -53,6 +53,10 @@ $(SRCDIR)/pgroups.h : genpgroups
 genpgroups: $(SRCDIR)/genpgroups.c
 	@echo CC $<
 	@$(CC) $(CPPFLAGS) $(CFLAGS) $< -o genpgroups
+
+tests :
+	@$(MAKE) $(MAKEFLAGS) -C tests all
+
 clean :
 	@$(ECHO) cleaning
 	@$(RM) $(SRCDIR)/pgroups.h
@@ -60,4 +64,4 @@ clean :
 	@$(RM) -rf doc
 	@$(RM) -rf $(OBJDIR)
 
-.PHONY: clean doc
+.PHONY: clean doc tests
