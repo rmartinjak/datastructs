@@ -26,6 +26,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "pgroups.h"
 
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 
@@ -86,6 +87,9 @@ struct htbucket_item
 /*---------------------------*/
 /* internal management funcs */
 /*---------------------------*/
+
+static hash_t ht_strhash(const void *key, const void *arg);
+static int ht_strcmp(const void *key1, const void *key2, const void *arg);
 
 static int ht_resize(hashtable *ht, int n);
 static htbucket *ht_alloc_buckets(int n);
@@ -250,6 +254,46 @@ static void htbucket_clear(htbucket *b, void (*free_key)(void*),  void (*free_da
     }
 }
 
+/*==================================*/
+/* "default" hash and cmp functions */
+/*==================================*/
+
+static hash_t ht_strhash(const void *key, const void *arg)
+{
+    unsigned char c;
+    hash_t hash = 5381;
+    const char *str = key;
+
+    if (arg)
+    {
+        size_t n = *(size_t*)arg;
+        while ((c = *str++) && n--)
+            hash = ((hash << 5) + hash) + c;
+    }
+    else
+    {
+        while ((c = *str++))
+            hash = ((hash << 5) + hash) + c;
+    }
+
+    return hash;
+}
+
+static int ht_strcmp(const void *key1, const void *key2, const void *arg)
+{
+    const char *s1, *s2;
+    s1 = key1;
+    s2 = key2;
+
+    if (arg)
+    {
+        size_t n = *(size_t*)arg;
+        return strncmp(s1, s2, n);
+    }
+    else
+        return strcmp(s1, s2);
+}
+
 
 /*===============================*/
 /* internal management functions */
@@ -374,32 +418,51 @@ int ht_init_f(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
         int (*cmpfunc)(const void*, const void*, const void*),
         void (*free_key)(void*), void (*free_data)(void*))
 {
-    *ht = malloc(sizeof(hashtable));
+    hashtable *p;
 
-    if (!(*ht) || !hashfunc || !cmpfunc) {
+    /* if both func pointers are NULL use default string hash/cmp */
+    if (!hashfunc && !cmpfunc)
+    {
+        hashfunc = ht_strhash;
+        cmpfunc = ht_strcmp;
+    }
+    /* either both (see above) or none must be NULL */
+    else if (!hashfunc || !cmpfunc)
+    {
+        *ht = NULL;
+        return HT_ERROR;
+    }
+
+    p = malloc(sizeof *p);
+
+    if (!p) {
+        *ht = NULL;
         return HT_ERROR;
     }
 
     srand(time(NULL));
 
-    (*ht)->n_items = 0;
-    (*ht)->n_buckets = PRIME(0);
-    (*ht)->pgroup = 0;
+    p->n_items = 0;
+    p->n_buckets = PRIME(0);
+    p->pgroup = 0;
 
-    (*ht)->hash = hashfunc;
-    (*ht)->cmp = cmpfunc;
+    p->hash = hashfunc;
+    p->cmp = cmpfunc;
 
-    (*ht)->free_key = free_key;
-    (*ht)->free_data = free_data;
+    p->free_key = free_key;
+    p->free_data = free_data;
 
-    (*ht)->buckets = ht_alloc_buckets((*ht)->n_buckets);
+    p->buckets = ht_alloc_buckets(p->n_buckets);
 
-    if ((*ht)->buckets)
-        return HT_OK;
-    else {
-        free(*ht);
+    if (!p->buckets)
+    {
+        free(p);
+        *ht = NULL;
         return HT_ERROR;
     }
+
+    *ht = p;
+    return HT_OK;
 }
 
 
