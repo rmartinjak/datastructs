@@ -49,7 +49,6 @@ doc : src/hashtable.h doxyfile
 $(SRCDIR)/pgroups.h : genpgroups
 	@echo generating pgroups.h
 	@./$< > $@
-	@rm $<
 
 genpgroups: $(SRCDIR)/genpgroups.c
 	@echo CC $<
