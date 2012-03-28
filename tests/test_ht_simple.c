@@ -18,42 +18,59 @@ void teardown(void)
 START_TEST (test_ht_insert)
 {
     int res, data;
-    int *data_retrieved;
+    int *p;
 
     res = ht_insert(ht, "test", &data);
-    fail_unless(res == HT_OK);
+    fail_unless(res == HT_OK,
+        "inserting a new item should return HT_OK");
 
-    data_retrieved = ht_get(ht, "test");
-    fail_unless(data_retrieved == &data);
+    p = ht_get(ht, "test");
+    fail_unless(p == &data,
+        "ht_get() should return the data inserted by ht_insert()");
 }
 END_TEST
 
 START_TEST (test_ht_set)
 {
     int res, data;
-    int *data_retrieved;
+    int *p;
 
     res = ht_set(ht, "test", &data);
-    fail_unless(res == HT_OK);
+    fail_unless(res == HT_OK,
+        "setting a new item should return HT_OK");
 
-    data_retrieved = ht_get(ht, "test");
-    fail_unless(data_retrieved == &data);
+    p = ht_get(ht, "test");
+    fail_unless(p == &data,
+        "ht_get() should return the data set by ht_set()");
 }
 END_TEST
 
 START_TEST (test_ht_set_twice)
 {
     int res, data1, data2;
-    int *data_retrieved;
+    int *p;
 
     res = ht_set(ht, "test", &data1);
-    fail_unless(res == HT_OK);
+    fail_unless(res == HT_OK,
+        "setting a new item should return HT_OK");
 
     res = ht_set(ht, "test", &data2);
-    fail_unless(res == HT_OK);
+    fail_unless(res == HT_OK,
+        "re-setting a item should return HT_OK");
 
-    data_retrieved = ht_get(ht, "test");
-    fail_unless(data_retrieved == &data2);
+    p = ht_get(ht, "test");
+    fail_unless(p == &data2,
+        "ht_get() should return the data set by the last ht_set() call");
+}
+END_TEST
+
+START_TEST (test_ht_get_nonexistent)
+{
+    void *p;
+
+    p = ht_get(ht, "test");
+    fail_unless(p == NULL,
+        "ht_get() should return NULL if non-existent key passed");
 }
 END_TEST
 
@@ -68,24 +85,9 @@ Suite *ht_simple_suite(void)
     tcase_add_test(tc_simple, test_ht_insert);
     tcase_add_test(tc_simple, test_ht_set);
     tcase_add_test(tc_simple, test_ht_set_twice);
+    tcase_add_test(tc_simple, test_ht_get_nonexistent);
 
     suite_add_tcase(s, tc_simple);
 
     return s;
 }
-
-/*
-int main(void)
-{
-    int number_failed;
-    Suite *s = ht_simple_suite();
-    SRunner *sr = srunner_create(s);
-
-    srunner_run_all(sr, CK_NORMAL);
-
-    number_failed = srunner_ntests_failed(sr);
-    srunner_free(sr);
-
-    return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
-}
-*/
