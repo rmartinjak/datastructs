@@ -32,7 +32,7 @@ END_TEST
 
 START_TEST (test_ht_insert_null)
 {
-    int res, data;
+    int res;
     void *p;
 
     res = ht_insert(ht, "test", NULL);
