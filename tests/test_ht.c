@@ -4,6 +4,7 @@
 
 Suite *ht_init_suite(void);
 Suite *ht_simple_suite(void);
+Suite *ht_args_suite(void);
 
 int main(void)
 {
@@ -12,6 +13,7 @@ int main(void)
 
     srunner_add_suite(sr, ht_init_suite());
     srunner_add_suite(sr, ht_simple_suite());
+    srunner_add_suite(sr, ht_args_suite());
 
     srunner_run_all(sr, CK_NORMAL);
 

@@ -5,12 +5,12 @@
 
 hashtable *ht;
 
-void setup(void)
+static void setup(void)
 {
     ht_init(&ht, NULL, NULL);
 }
 
-void teardown(void)
+static void teardown(void)
 {
     ht_free(ht);
 }
@@ -45,14 +45,50 @@ START_TEST (test_ht_insert_null)
 }
 END_TEST
 
+START_TEST (test_ht_insert_twice)
+{
+    int res, data1, data2;
+    int *p;
+
+    res = ht_insert(ht, "test", &data1);
+    fail_unless(res == HT_OK,
+        "inserting a new item should return HT_OK");
+
+    res = ht_insert(ht, "test", &data2);
+    fail_unless(res == HT_EXIST,
+        "re-inserting an item should return HT_EXIST");
+
+    p = ht_get(ht, "test");
+    fail_unless(p == &data1,
+        "ht_get() should return the data set by the first ht_insert() call");
+}
+END_TEST
+
 START_TEST (test_ht_insert_remove)
 {
+    int data, *p;
+
     ht_insert(ht, "test", NULL);
     ht_remove(ht, "test");
-
     fail_unless(ht_empty(ht),
         "after inserting and removing an item with the same key to an empty"
         "hashtable, it should be empty again");
+
+
+    ht_insert(ht, "foo", &data);
+    ht_insert(ht, "bar", &data);
+    p = ht_remove(ht, "foo");
+    fail_unless(p == &data,
+        "ht_remove() should return the data associated with the given key");
+
+    p = ht_get(ht, "foo");
+    fail_unless(p != &data,
+        "removed item should no longer be returned by ht_get()");
+
+    p = ht_get(ht, "bar");
+    fail_unless(p == &data,
+        "a not removed item should still be in the hashtable if another"
+        "item was removed");
 }
 END_TEST
 
@@ -82,7 +118,7 @@ START_TEST (test_ht_set_twice)
 
     res = ht_set(ht, "test", &data2);
     fail_unless(res == HT_OK,
-        "re-setting a item should return HT_OK");
+        "re-setting an item should return HT_OK");
 
     p = ht_get(ht, "test");
     fail_unless(p == &data2,
@@ -100,6 +136,15 @@ START_TEST (test_ht_get_nonexistent)
 }
 END_TEST
 
+START_TEST (test_ht_remove_nonexistent)
+{
+    void *p;
+
+    p = ht_remove(ht, "test");
+    fail_unless(p == NULL,
+        "ht_remove() should return NULL if non-existent key passed");
+}
+END_TEST
 
 Suite *ht_simple_suite(void)
 {
@@ -111,11 +156,12 @@ Suite *ht_simple_suite(void)
 
     tcase_add_test(tc_simple, test_ht_insert);
     tcase_add_test(tc_simple, test_ht_insert_null);
+    tcase_add_test(tc_simple, test_ht_insert_twice);
     tcase_add_test(tc_simple, test_ht_insert_remove);
     tcase_add_test(tc_simple, test_ht_set);
     tcase_add_test(tc_simple, test_ht_set_twice);
     tcase_add_test(tc_simple, test_ht_get_nonexistent);
-
+    tcase_add_test(tc_simple, test_ht_remove_nonexistent);
 
     suite_add_tcase(s, tc_simple);
 
