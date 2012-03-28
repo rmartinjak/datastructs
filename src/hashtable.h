@@ -62,18 +62,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HT_ERROR -1
 #define HT_EXIST 1
 
-/*!
- *  \def        HT_BUCKETS_MIN
- *  \brief      minimum number of buckets
- *  \ingroup    def
- *
- *  \def        HT_BUCKETS_MAX
- *  \brief      maximum number of buckets
- *  \ingroup    def
- */
-#define HT_BUCKETS_MIN (1 << 10)
-#define HT_BUCKETS_MAX (1 << 18)
-
 
 /*==========*/
 /* typedefs */
