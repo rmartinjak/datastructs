@@ -110,7 +110,7 @@ static void *htbucket_get(htbucket *b, const void *key,
         int (*cmp)(const void*, const void*, const void*), const void *cmp_arg);
 
 /* remove and return item with the given key */
-static void *htbucket_remove(htbucket *b, const void *key,
+static int htbucket_remove(htbucket *b, void **data, const void *key,
         int (*cmp)(const void*, const void*, const void*), const void *cmp_arg,
         void (*free_key)(void*));
 
@@ -187,35 +187,34 @@ static void *htbucket_get(htbucket *b, const void *key,
     return NULL;
 }
 
-static void *htbucket_remove(htbucket *b, const void *key,
+static int htbucket_remove(htbucket *b, void **data, const void *key,
         int (*cmp)(const void*, const void*, const void*), const void *cmp_arg,
-        void(*free_key)(void*))
+        void (*free_key)(void*))
 {
     struct htbucket_item *p, *del;
-    void *ret;
 
     if (!b->root)
-        return NULL;
+        return HT_ERROR;
     else if (cmp(key, b->root->key, cmp_arg) == 0) {
         del = b->root;
         b->root = del->next;
-        ret = del->data;
+        *data = del->data;
         FREE_KEY(del->key);
         free(del);
-        return ret;
+        return HT_OK;
     }
 
     for (p = b->root; p->next; p = p->next) {
         if (cmp(key, p->next->key, cmp_arg) == 0) {
             del = p->next;
             p->next = del->next;
-            ret = del->data;
+            *data = del->data;
             FREE_KEY(del->key);
             free(del);
-            return ret;
+            return HT_OK;
         }
     }
-    return NULL;
+    return HT_ERROR;
 }
 
 static void *htbucket_pop(htbucket *b, void **key, void **data)
@@ -537,7 +536,7 @@ int ht_insert_a(hashtable *ht, void *key, void *data,
     int res;
     hash_t k;
 
-    if (!ht || !key || !data) {
+    if (!ht || !key) {
         return HT_ERROR;
     }
 
@@ -590,23 +589,24 @@ void *ht_remove_fa(hashtable *ht, const void *key,
         const void *hash_arg, const void *cmp_arg)
 {
     hash_t k;
-    void *res;
+    int res;
+    void *data;
 
     if (!ht || !key) {
         return NULL;
     }
 
     k = (size_t)ht->hash(key, hash_arg) % ht->n_buckets;
-    res = htbucket_remove(ht->buckets + k, key, ht->cmp, cmp_arg, free_key);
+    res = htbucket_remove(ht->buckets + k, &data, key, ht->cmp, cmp_arg, free_key);
 
-    if (res) {
+    if (res == HT_OK) {
         ht->n_items--;
         /* items < buckets/4 -> resize */
         if (ht->n_items * 4 < ht->n_buckets) {
             ht_resize(ht, 0);
         }
     }
-    return res;
+    return data;
 }
 
 
