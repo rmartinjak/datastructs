@@ -605,8 +605,10 @@ void *ht_remove_fa(hashtable *ht, const void *key,
         if (ht->n_items * 4 < ht->n_buckets) {
             ht_resize(ht, 0);
         }
+        return data;
     }
-    return data;
+
+    return NULL;
 }
 
 
