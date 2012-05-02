@@ -35,8 +35,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* macros */
 /*========*/
 
-#define BST_INTCMP(x, y) ((x < y) ? -1 : (x > y ? 1 : 0))
-#define BST_CMP(t, x, y) ((t->cmp) ? t->cmp(x, y) : BST_INTCMP(x, y))
+#define RED 0
+#define BLACK 1
+#define LEAF 2
+
+#define IS_LEAF(n) ((n)->color == LEAF)
+#define IS_BLACK(n) (IS_LEAF(n) || (n)->color == BLACK)
+#define IS_RED(n) ((n)->color == RED)
+
+#define IS_LEFT_CHILD(n) ((n) == (n)->parent->left)
+#define IS_RIGHT_CHILD(n) ((n) == (n)->parent->right)
+
+#define SIBLING(n) ((!(n) || !(n)->parent) ? NULL : ((IS_LEFT_CHILD(n)) ? (n)->parent->right : (n)->parent->left))
+#define UNCLE(n) ((!(n) || !(n)->parent) ? NULL : SIBLING((n)->parent))
+#define GRANDPARENT(n) ((n)->parent->parent)
+
 
 
 /*=========*/
@@ -48,6 +61,7 @@ typedef struct bstnode bstnode;
 struct bstnode
 {
     long key;
+    int color;
     void *data;
     bstnode *parent;
     bstnode *left;
@@ -73,16 +87,20 @@ static bstnode *bstnode_init(long key, void *data, bstnode *parent);
 static void bstnode_free(bstnode *n, void (*callback)(void*));
 
 /* find node in tree */
-static bstnode *bst_findpath(bst *t, bstnode *n, long key);
+static bstnode *bst_findpath(bstnode *n, long key);
 
 /* insert a node */
 static int bst_insert_(bst *t, long key, void *data, int dups);
-
-/* find node that replaces a node n, move it to n's position and return it */
-static bstnode *bst_remove_at(bstnode *n);
+static void bst_insert_repair(bst *t, bstnode *n);
 
 /* remove one/all nodes with equal key */
 static int bst_remove_(bst *t, long key, void (*callback)(void*), int dups);
+static void bst_remove_at(bst *t, bstnode *n);
+static void bst_remove_repair(bst *t, bstnode *n);
+
+
+static void bst_rotate_left(bst *t, bstnode *n);
+static void bst_rotate_right(bst *t, bstnode *n);
 
 
 /********************/
@@ -91,15 +109,30 @@ static int bst_remove_(bst *t, long key, void (*callback)(void*), int dups);
 
 static bstnode *bstnode_init(long key, void *data, bstnode *parent)
 {
-    bstnode *n = malloc(sizeof (bstnode));
+    bstnode *n, *l, *r;
+    n = malloc(sizeof *n);
+    l = malloc(sizeof *n);
+    r = malloc(sizeof *n);
 
-    if (n) {
-        n->key = key;
-        n->data = data;
-        n->parent = parent;
-        n->left = NULL;
-        n->right = NULL;
+    if (!n || !l || !r)
+    {
+        free(n);
+        free(l);
+        free(r);
+        return NULL;
     }
+
+    n->key = key;
+    n->color = RED;
+    n->data = data;
+    n->parent = parent;
+
+    n->left = l;
+    n->right = r;
+    l->color = r->color = LEAF;
+    l->key = r->key = -1;
+    l->parent = r->parent = n;
+
     return n;
 }
 
@@ -116,195 +149,334 @@ static void bstnode_free(bstnode *n, void (*callback)(void*))
     free(n);
 }
 
-static bstnode *bst_findpath(bst *t, bstnode *n, long key)
+static bstnode *bst_findpath(bstnode *n, long key)
 {
-    int cmp = BST_CMP(t, key, n->key);
-    if (cmp == 0)
+    if (key == n->key)
         return n;
-    else if (cmp < 0)
-        return (!n->left) ? n : bst_findpath(t, n->left, key);
+    else if (key < n->key)
+        return (IS_LEAF(n->left)) ? n : bst_findpath(n->left, key);
     else
-        return (!n->right) ? n : bst_findpath(t, n->right, key);
+        return (IS_LEAF(n->right)) ? n : bst_findpath(n->right, key);
 }
 
 static int bst_insert_(bst *t, long key, void *data, int dups)
 {
     bstnode *n;
     bstnode *ins;
-    int cmp;
 
-    if (!t->root) {
+    if (!t->root)
+    {
         t->root = bstnode_init(key, data, NULL);
         if (!t->root) {
             return -1;
         }
+        t->root->color = BLACK;
         return 0;
     }
 
-    n = bst_findpath(t, t->root, key);
-
-    cmp = BST_CMP(t, key, n->key);
+    n = bst_findpath(t->root, key);
 
     /* another node with equal data exists */
-    if (cmp == 0) {
+    if (key == n->key)
+    {
         /* no duplicates allowed */
         if (!dups) {
             return -1;
         }
         /* duplicates alloewd -> insert left */
         ins = bstnode_init(key, data, n);
-        n->left = ins;
+        if (ins)
+        {
+            free(n->left);
+            n->left = ins;
+        }
     }
+
+    ins = bstnode_init(key, data, n);
+    if (!ins)
+        return -1;
+
     /* new data smaller -> insert left */
-    else if (cmp < 0) {
-        ins = bstnode_init(key, data, n);
+    if (key < n->key)
+    {
+        free(n->left);
         n->left = ins;
     }
     /* new data greater -> insert right */
     else {
-        ins = bstnode_init(key, data, n);
+        free(n->right);
         n->right = ins;
     }
 
-    if (!ins) {
-        return -1;
-    }
+    /* repair the tree */
+    bst_insert_repair(t, ins);
 
     return 0;
 }
 
-static bstnode *bst_remove_at(bstnode *n)
+static void bst_insert_repair(bst *t, bstnode *n)
 {
-    static int bst_del_from_left = 1;
+    bstnode *u;
 
-    /* p will take n's position */
-    bstnode *p;
-
-    /* no children */
-    if (!n->left && !n->right) {
-        return NULL;
-    }
-    /* 1 child */
-    else if (!n->left) {
-        p = n->right;
-    }
-    else if (!n->right) {
-        p = n->left;
+    /* case 1: n is the root */
+    if (!n->parent)
+    {
+        n->color = BLACK;
+        return;
     }
 
-    /* 2 children */
-    else {
-        /* go either left or right way */
-        bst_del_from_left ^= 1;
+    /* case 2: n's parent is black */
+    if (n->parent->color == BLACK)
+        return;
 
-        /* n's predecessor replaces n */
-        if (bst_del_from_left) {
-            /* find predecessor (rightmost item of left subtree) */
-            p = n->left;
-            if (p->right) {
-                while (p->right)
-                    p = p->right;
-
-                /* p's left subtree becomes his former parent's right subtree 
-                   (p has no right subtree)
-                 */
-                if (p->left)
-                    p->left->parent = p->parent;
-                p->parent->right = p->left;
-
-                /* p's new left subtree is n's subtree */
-                p->left = n->left;
-            }
-            /* p's new left subtree is n's subtree */
-            p->right = n->right;
-        }
-        /* analoguous to the above method */
-        else {
-            p = n->right;
-            if (p->left) {
-                while (p->left)
-                    p = p->left;
-                if (p->right)
-                    p->right->parent = p->parent;
-                p->parent->left = p->right;
-                p->right = n->right;
-            }
-            p->left = n->left;
-        }
+    /* case 3: n's uncle and father are both red */
+    if ((u = UNCLE(n)) && u->color == RED)
+    {
+        n->parent->color = BLACK;
+        u->color = BLACK;
+        GRANDPARENT(n)->color = RED;
+        bst_insert_repair(t, GRANDPARENT(n));
+        return;
     }
 
-    /* update children's parent ptr */
-    if (p->right)
-        p->right->parent = p;
-    if (p->left)
-        p->left->parent = p;
+    /* case 4: n has no or black uncle, red father and
+        either  n = n->parent->right && n->parent = n->parent->parent->left
+        or      n = n->parent->left  && n->parent = n->parent->parent->right
+    */
+    if (IS_RIGHT_CHILD(n) && IS_LEFT_CHILD(n->parent))
+    {
+        bst_rotate_left(t, n->parent);
+        n = n->left;
+    }
+    else if (IS_LEFT_CHILD(n) && IS_RIGHT_CHILD(n->parent))
+    {
+        bst_rotate_right(t, n->parent);
+        n = n->right;
+    }
 
-    /* set parent */
-    p->parent = n->parent;
-
-    /* child ref of n's (now p's) parent update outside of this function */
-    return p;
+    /* case 5: n has no or black uncle, red father and
+        either  n = n->parent->left  && n->parent = n->parent->parent->left
+        or      n = n->parent->right && n->parent = n->parent->parent->right
+    */
+    n->parent->color = BLACK;
+    GRANDPARENT(n)->color = RED;
+    if (IS_LEFT_CHILD(n))
+        bst_rotate_right(t, GRANDPARENT(n));
+    else
+    {
+        bst_rotate_left(t, GRANDPARENT(n));
+    }
 }
 
 static int bst_remove_(bst *t, long key, void (*callback)(void*), int dups)
 {
-    /* node to remove and it's parent */
-    bstnode *del, *par;
+    bstnode *del;
 
-    /* number of removed nodes */
     int removed = 0;
 
-    /* empty tree */
-    if (!t->root) {
+    if (!t->root)
         return -1;
-    }
 
     do {
-        del = bst_findpath(t, t->root, key);
+        del = bst_findpath(t->root, key);
 
-        /* no node found, return */
-        if (BST_CMP(t, key, del->key) != 0) {
+        if (key != del->key)
             return removed;
-        }
 
-        par = del->parent;
+        if (callback) callback(del->data);
+        bst_remove_at(t, del);
+        ++removed;
 
-        /* bst_remove_at returns node that will replace the removed node
-           uptdate del's parents (or t's root if del was the old root) */
-
-        if (del == t->root)
-            t->root = bst_remove_at(del);
-        /* is left child */
-        else if (del == par->left)
-            par->left = bst_remove_at(del);
-        /* is right child */
-        else
-            par->right = bst_remove_at(del);
-
-
-        if (callback)
-            callback(del->data);
-
-        /* finally free it */
-        free(del);
-
-        removed++;
-    /* repeat if dups non-zero until no node found */
     } while (dups);
 
     return removed;
 }
 
+static void bst_remove_at(bst *t, bstnode *n)
+{
+    bstnode *p;
+
+    /* n has two children */
+    if (!IS_LEAF(n->left) && !IS_LEAF(n->right))
+    {
+        static int del_from_left = 1;
+        long tmpkey;
+        void *tmpdata;
+        if (del_from_left)
+        {
+            p = n->left;
+            while (!IS_LEAF(p->right))
+                p = p->right;
+        }
+        else
+        {
+            p = n->right;
+            while (!IS_LEAF(p->left))
+                p = p->left;
+        }
+
+        /* swap key and data and remove swapped node (which has 0 or 1 child) */
+        tmpkey = p->key, p->key = n->key, n->key = tmpkey;
+        tmpdata = p->data, p->data = n->data, n->data = tmpdata;
+        bst_remove_at(t, p);
+        return;
+    }
+
+    /* n has no/one child */
+    p = IS_LEAF(n->left) ? n->right : n->left;
+
+    /* replace n with p */
+    p->parent = n->parent;
+    if (n->parent)
+    {
+        if (IS_LEFT_CHILD(n))
+            n->parent->left = p;
+        else
+            n->parent->right = p;
+    }
+    else
+        t->root = p;
+
+    if (IS_BLACK(n))
+    {
+        if (p->color == RED)
+            p->color = BLACK;
+        else
+            bst_remove_repair(t, p);
+    }
+    free(n);
+    return;
+}
+
+static void bst_remove_repair(bst *t, bstnode *n)
+{
+    bstnode *sib;
+
+    /* case 1: n is root */
+    if (!n->parent)
+        return;
+
+    sib = SIBLING(n);
+
+    /* case 2: n's sibling is red */
+    if (IS_RED(sib))
+    {
+        n->parent->color = RED;
+        sib->color = BLACK;
+
+        if (IS_LEFT_CHILD(n))
+            bst_rotate_left(t, n->parent);
+        else
+            bst_rotate_right(t, n->parent);
+
+        sib = SIBLING(n);
+    }
+
+    /* case 3: parent sib and sib's children are black */
+    if (n->parent->color == BLACK &&
+        sib->color == BLACK &&
+        IS_BLACK(sib->left) &&
+        IS_BLACK(sib->right))
+    {
+        sib->color = RED;
+        bst_remove_repair(t, n->parent);
+        return;
+    }
+
+    /* case 4: parent is red, sib and sib's children are black */
+    if (n->parent->color == RED &&
+        sib->color == BLACK &&
+        IS_BLACK(sib->left) &&
+        IS_BLACK(sib->right))
+    {
+        sib->color = RED;
+        n->parent->color = BLACK;
+        return;
+    }
+
+    /* case 5: 
+        a) n is left child, sib and sib->right child are black, sib->left is red
+        b) n is right child, sib and sib->left child are black, sib->right is red
+    */
+    if (IS_LEFT_CHILD(n) &&
+        sib->color == BLACK &&
+        IS_RED(sib->left) &&
+        IS_BLACK(sib->right))
+    {
+        sib->color = RED;
+        sib->left->color = BLACK;
+        bst_rotate_right(t, sib);
+        sib = SIBLING(n);
+    }
+    else if (IS_RIGHT_CHILD(n) &&
+        sib->color == BLACK &&
+        IS_RED(sib->right) && 
+        IS_BLACK(sib->left))
+    {
+        sib->color = RED;
+        sib->right->color = BLACK;
+        bst_rotate_left(t, sib);
+        sib = SIBLING(n);
+    }
+
+    /* case 6: */ 
+    sib->color = n->parent->color;
+    n->parent->color = BLACK;
+    if (IS_LEFT_CHILD(n))
+    {
+        sib->right->color = BLACK;
+        bst_rotate_left(t, n->parent);
+    }
+    else
+    {
+        sib->left->color = BLACK;
+        bst_rotate_right(t, n->parent);
+    }
+}
+
+
+#define ROTATE(dir, other)                          \
+static void bst_rotate_##dir(bst *t, bstnode *n)    \
+{                                                   \
+    bstnode *p;                                     \
+                                                    \
+    if (!n)                                         \
+        return;                                     \
+                                                    \
+    p = n->other;                                   \
+                                                    \
+    if (n == t->root)                               \
+    {                                               \
+        t->root = p;                                \
+        p->parent = NULL;                           \
+    }                                               \
+    else {                                          \
+        if (IS_LEFT_CHILD(n))                       \
+            n->parent->left = p;                    \
+        else                                        \
+            n->parent->right = p;                   \
+        p->parent = n->parent;                      \
+    }                                               \
+                                                    \
+    n->other = p->dir;                              \
+    if (n->other)                                   \
+        n->other->parent = n;                       \
+    p->dir = n;                                     \
+    n->parent = p;                                  \
+}
+
+ROTATE(left, right)
+ROTATE(right, left)
 
 /**********************/
 /* EXPORTED FUNCTIONS */
 /**********************/
 
-bst *bst_init(int (*cmp)(long, long))
+bst *bst_init(void)
 {
-    bst *t = malloc(sizeof (bst));
-    if (t) {
-        t->cmp = cmp;
+    bst *t = malloc(sizeof *t);
+    if (t)
+    {
         t->root = NULL;
     }
     return t;
@@ -354,12 +526,12 @@ int bst_contains(bst *t, long key)
 {
     bstnode *n;
 
-    if (!t || !t->root)
+    if (!t || !t->root || IS_LEAF(t->root))
         return 0;
 
-    n = bst_findpath(t, t->root, key);
+    n = bst_findpath(t->root, key);
 
-    return (BST_CMP(t, key, n->key) == 0);
+    return (key == n->key);
 }
 
 void *bst_get(bst *t, long key)
@@ -369,9 +541,9 @@ void *bst_get(bst *t, long key)
     if (!t || !t->root)
         return 0;
 
-    n = bst_findpath(t, t->root, key);
+    n = bst_findpath(t->root, key);
 
-    if (BST_CMP(t, key, n->key) == 0)
+    if (key == n->key)
         return n->data;
     else
         return NULL;

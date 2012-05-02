@@ -45,7 +45,7 @@ typedef struct bst bst;
 /*============*/
 
 /* initialize bst */
-bst *bst_init(int (*cmp)(long, long));
+bst *bst_init(void);
 
 /* remove all nodes from tree; leaves an empty tree */
 void bst_clear(bst *t, void (*callback)(void*));
