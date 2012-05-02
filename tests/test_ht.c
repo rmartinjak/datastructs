@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <check.h>
-#include "hashtable.h"
 
 Suite *ht_init_suite(void);
 Suite *ht_simple_suite(void);
