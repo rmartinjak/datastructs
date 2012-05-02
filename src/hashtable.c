@@ -303,15 +303,13 @@ static htbucket *ht_alloc_buckets(int n)
     htbucket *ret;
     htbucket *p;
 
-    if ((ret = malloc(n * sizeof(htbucket))) == NULL) {
-        return NULL;
-    }
+    ret = malloc(n * sizeof *ret);
 
-    p = ret;
-
-    while (n--) {
-        p->root = NULL;
-        ++p;
+    if (ret)
+    {
+        p = ret;
+        while (n--)
+            (p++)->root = NULL;
     }
 
     return ret;
