@@ -50,7 +50,8 @@ START_TEST (test_bst_nodup)
     for (i=0; i<N; ++i)
     {
         bst_insert(t, numbers[i], &numbers[i]);
-        fail_unless(bst_contains(t, numbers[i]));
+        fail_unless(bst_contains(t, numbers[i]),
+                "failed assertion: bst_contains(t, %ld)\n", numbers[i]);
 
         if (i == N/2)
         {
@@ -74,9 +75,11 @@ START_TEST (test_bst_nodup)
             }
         }
 
-        fail_unless(bst_contains(t, numbers[i]));
+        fail_unless(bst_contains(t, numbers[i]),
+                "failed assertion: bst_contains(t, %ld)\n", numbers[i]);
         bst_remove(t, numbers[i], NULL);
-        fail_unless(!bst_contains(t, numbers[i]));
+        fail_unless(!bst_contains(t, numbers[i]),
+                "failed assertion: !bst_contains(t, %ld)\n", numbers[i]);
     }
 
     fail_unless(bst_contains(t, 1337));
