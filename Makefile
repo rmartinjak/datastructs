@@ -54,7 +54,7 @@ genpgroups: $(SRCDIR)/genpgroups.c
 	@echo CC $<
 	@$(CC) $(CPPFLAGS) $(CFLAGS) $< -o genpgroups
 
-tests :
+tests : archive
 	@$(MAKE) $(MAKEFLAGS) -C tests all
 
 clean :
