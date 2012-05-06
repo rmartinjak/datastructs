@@ -64,18 +64,14 @@ void bst_free(bst *t, void (*callback)(void*));
 
 /* insert an item into the tree */
 int bst_insert(bst *t, long key, void *data);
-/* insert allowing duplicates */
-int bst_insert_dup(bst *t, long key, void *data);
 
 
 /*--------*/
 /* delete */
 /*--------*/
 
-/* delete one item with equal key from tree */
+/* delete item with equal key from tree */
 int bst_remove(bst *t, long key, void (*callback)(void*));
-/* delete all items with equal key from tree */
-int bst_remove_dup(bst *t, long key, void (*callback)(void*));
 
 
 /*----------*/

@@ -89,15 +89,13 @@ static void bstnode_free(bstnode *n, void (*callback)(void*));
 /* find node in tree */
 static bstnode *bst_findpath(bstnode *n, long key);
 
-/* insert a node */
-static int bst_insert_(bst *t, long key, void *data, int dups);
+/* repair after inserting a node */
 static void bst_insert_repair(bst *t, bstnode *n);
 
 /* remove one/all nodes with equal key */
-static int bst_remove_(bst *t, long key, void (*callback)(void*), int dups);
 static void bst_remove_at(bst *t, bstnode *n);
+/* repair after removing a node */
 static void bst_remove_repair(bst *t, bstnode *n);
-
 
 static void bst_rotate_left(bst *t, bstnode *n);
 static void bst_rotate_right(bst *t, bstnode *n);
@@ -159,61 +157,6 @@ static bstnode *bst_findpath(bstnode *n, long key)
         return (IS_LEAF(n->right)) ? n : bst_findpath(n->right, key);
 }
 
-static int bst_insert_(bst *t, long key, void *data, int dups)
-{
-    bstnode *n;
-    bstnode *ins;
-
-    if (!t->root)
-    {
-        t->root = bstnode_init(key, data, NULL);
-        if (!t->root) {
-            return -1;
-        }
-        t->root->color = BLACK;
-        return 0;
-    }
-
-    n = bst_findpath(t->root, key);
-
-    /* another node with equal data exists */
-    if (key == n->key)
-    {
-        /* no duplicates allowed */
-        if (!dups) {
-            return -1;
-        }
-        /* duplicates alloewd -> insert left */
-        ins = bstnode_init(key, data, n);
-        if (ins)
-        {
-            free(n->left);
-            n->left = ins;
-        }
-    }
-
-    ins = bstnode_init(key, data, n);
-    if (!ins)
-        return -1;
-
-    /* new data smaller -> insert left */
-    if (key < n->key)
-    {
-        free(n->left);
-        n->left = ins;
-    }
-    /* new data greater -> insert right */
-    else {
-        free(n->right);
-        n->right = ins;
-    }
-
-    /* repair the tree */
-    bst_insert_repair(t, ins);
-
-    return 0;
-}
-
 static void bst_insert_repair(bst *t, bstnode *n)
 {
     bstnode *u;
@@ -266,30 +209,6 @@ static void bst_insert_repair(bst *t, bstnode *n)
     {
         bst_rotate_left(t, GRANDPARENT(n));
     }
-}
-
-static int bst_remove_(bst *t, long key, void (*callback)(void*), int dups)
-{
-    bstnode *del;
-
-    int removed = 0;
-
-    if (!t->root)
-        return -1;
-
-    do {
-        del = bst_findpath(t->root, key);
-
-        if (key != del->key)
-            return removed;
-
-        if (callback) callback(del->data);
-        bst_remove_at(t, del);
-        ++removed;
-
-    } while (dups);
-
-    return removed;
 }
 
 static void bst_remove_at(bst *t, bstnode *n)
@@ -504,22 +423,63 @@ int bst_empty(bst *t)
 
 int bst_insert(bst *t, long key, void *data)
 {
-    return bst_insert_(t, key, data, 0);
-}
+    bstnode *n;
+    bstnode *ins;
 
-int bst_insert_dup(bst *t, long key, void *data)
-{
-    return bst_insert_(t, key, data, 1);
+    if (!t->root)
+    {
+        t->root = bstnode_init(key, data, NULL);
+        if (!t->root) {
+            return -1;
+        }
+        t->root->color = BLACK;
+        return 0;
+    }
+
+    n = bst_findpath(t->root, key);
+
+    /* no duplicates allowed */
+    if (key == n->key)
+        return -1;
+
+    ins = bstnode_init(key, data, n);
+    if (!ins)
+        return -1;
+
+    /* new data smaller -> insert left */
+    if (key < n->key)
+    {
+        free(n->left);
+        n->left = ins;
+    }
+    /* new data greater -> insert right */
+    else {
+        free(n->right);
+        n->right = ins;
+    }
+
+    /* repair the tree */
+    bst_insert_repair(t, ins);
+
+    return 0;
 }
 
 int bst_remove(bst *t, long key, void (*callback)(void*))
 {
-    return bst_remove_(t, key, callback, 0);
-}
+    bstnode *del;
 
-int bst_remove_dup(bst *t, long key, void (*callback)(void*))
-{
-    return bst_remove_(t, key, callback, 1);
+    if (!t->root)
+        return -1;
+
+    del = bst_findpath(t->root, key);
+
+    if (key != del->key)
+        return -1;
+
+    if (callback) callback(del->data);
+    bst_remove_at(t, del);
+
+    return 0;
 }
 
 int bst_contains(bst *t, long key)
