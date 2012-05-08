@@ -139,11 +139,14 @@ static void bstnode_free(bstnode *n, void (*callback)(void*))
     if (!n)
         return;
 
-    bstnode_free(n->left, callback);
-    bstnode_free(n->right, callback);
+    if (!IS_LEAF(n))
+    {
+        bstnode_free(n->left, callback);
+        bstnode_free(n->right, callback);
 
-    if (callback)
-        callback(n->data);
+        if (callback)
+            callback(n->data);
+    }
     free(n);
 }
 
