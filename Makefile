@@ -1,5 +1,5 @@
 CC = cc
-CPPFLAGS = -DPGROUP_COUNT=20 -DPGROUP_ELEMENTS=10
+CPPFLAGS = -DPGROUP_COUNT=8 -DPGROUP_ELEMENTS=10
 CFLAGS = -g -ansi -pedantic -Wall
 LDFLAGS =
 LIBS =
@@ -17,6 +17,7 @@ DOCDIR = doc
 DESTDIR = .
 ARCHIVENAME = datastructs.a
 
+ARCHIVE = $(DESTDIR)/$(ARCHIVENAME)
 
 _OBJ = hashtable queue bst
 OBJ = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(_OBJ)))
@@ -31,9 +32,9 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c $(SRCDIR)/pgroups.h
 	@$(ECHO) CC -c $<
 	@$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
-archive : $(DESTDIR)/$(ARCHIVENAME)
+archive : $(ARCHIVE)
 
-$(DESTDIR)/datastructs.a : $(OBJDIR) $(OBJ)
+$(ARCHIVE) : $(OBJDIR) $(OBJ)
 	@$(AR) $(ARFLAGS) $@ $(OBJ)
 
 
@@ -51,7 +52,6 @@ $(SRCDIR)/pgroups.h : genpgroups
 	@./$< > $@
 
 genpgroups: $(SRCDIR)/genpgroups.c
-	@echo CC $<
 	@$(CC) $(CPPFLAGS) $(CFLAGS) $< -o genpgroups
 
 tests : archive
@@ -62,6 +62,7 @@ clean :
 	@$(RM) $(SRCDIR)/pgroups.h
 	@$(RM) -f httest
 	@$(RM) -rf doc
+	@$(RM) genpgroups
 	@$(RM) -rf $(OBJDIR)
 
 .PHONY: clean doc tests
