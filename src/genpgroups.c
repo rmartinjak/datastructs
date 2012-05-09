@@ -1,45 +1,101 @@
 #include <stdlib.h>
 #include <stddef.h>
-#include <time.h>
 #include <stdio.h>
+#include <limits.h>
+#include <time.h>
 
-#define WITNESSES 200
-#define EVEN(n) (!(n & 1))
+#if _ISOC99_SOURCE
+#define longint long long
+#define ULONGINT_MAX ULLONG_MAX
+#else
+/* typedef long int longint; */
+#define longint long
+#define ULONGINT_MAX ULONG_MAX
+#endif
 
-unsigned long ulpowmod(unsigned long base, unsigned long exp, unsigned long mod) {
-    unsigned long long result = 1;
-    unsigned long long b;
+#define LONGINT_BIT (sizeof(longint) * CHAR_BIT)
+
+#define EVEN(n) (!(n % 2))
+#define WITNESSES 100
+
+unsigned longint shift_mod(unsigned longint a, unsigned int sh, unsigned longint mod);
+unsigned longint mult_mod(unsigned longint a, unsigned longint b, unsigned longint mod);
+unsigned longint pow_mod(unsigned longint base, unsigned longint exp, unsigned longint mod);
+
+unsigned longint randulongint(unsigned longint min, unsigned longint max);
+
+int millerrabin(unsigned longint n);
+
+
+unsigned longint shift_mod(unsigned longint a, unsigned int sh, unsigned longint mod)
+{
+    while (sh--) {
+        a <<= 1;
+        a %= mod;
+    }
+    return a;
+}
+
+unsigned longint mult_mod(unsigned longint a, unsigned longint b, unsigned longint mod)
+{
+    unsigned longint ret = 0;
+    unsigned int sh = 0;
+
+    while (b) {
+        if (b & 1) {
+            ret += shift_mod(a, sh, mod);
+            ret %= mod;
+        }
+        b >>= 1;
+        sh++;
+    }
+    return ret;
+}
+
+unsigned longint pow_mod(unsigned longint base, unsigned longint exp, unsigned longint mod)
+{
+    unsigned longint ret = 1;
+    unsigned longint b;
 
     b = base;
 
     while (exp)
     {
         if (exp & 1) {
-            result = (result * b) % mod;
+            ret = mult_mod(ret, b, mod);
         }
         exp >>= 1;
-        b = (b * b) % mod;
+        b = mult_mod(b, b, mod);
     }
-    return (unsigned long)result;
+    return (unsigned longint)ret;
 }
 
-unsigned long randlong(unsigned long min, unsigned long max) {
-    unsigned long ret = 0;
+unsigned longint randulongint(unsigned longint min, unsigned longint max)
+{
+    static size_t rand_bits = 0;
+    size_t bits;
+    unsigned longint rnd = 0;
 
-    if (min > max) {
-        return 1452;
+    if (!rand_bits)
+    {
+        int r;
+        for (r = RAND_MAX; r > 0; r >>= 1)
+            rand_bits++;
     }
 
-    while (ret < min || ret > max) {
-        ret = ((rand()*rand()) % (max-min)) + min;
+    for (bits = 0; bits < LONGINT_BIT; bits += rand_bits)
+    {
+        rnd <<= rand_bits;
+        rnd |= rand();
     }
 
-    return ret;
+    rnd = min + max * ((double)rnd / ULONGINT_MAX);
+    return rnd;
 }
 
-
-int millerrabin(unsigned long n) {
-    unsigned long d, s, i, a;
+int millerrabin(unsigned longint n)
+{
+    unsigned longint d, s, i, a;
     int k;
     int r1, r2;
 
@@ -55,18 +111,18 @@ int millerrabin(unsigned long n) {
     }
 
     for (k = 0; k < WITNESSES; k++) {
-        a = randlong(2, n-2);
+        a = randulongint(2, n-2);
         r1 = 0;
         r2 = 0;
 
         /* first test */
-        if (ulpowmod(a, d, n) == 1) {
+        if (pow_mod(a, d, n) == 1) {
             r1 = 1;
         }
 
         /* second test */
         for (i = 0; i < s; i++) {
-            if (ulpowmod(a, (1 << i) * d, n) == n-1) {
+            if (pow_mod(a, (1 << i) * d, n) == n-1) {
                 r2 = 1;
                 break;
             }
@@ -79,8 +135,8 @@ int millerrabin(unsigned long n) {
     return 1;
 }
 
-
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 
     size_t c;
     int i;
@@ -93,7 +149,7 @@ int main(int argc, char **argv) {
         count = PGROUP_ELEMENTS;
         while (count--) {
             do {
-                c = randlong(1 << (i+10), 1 << (i+11)); 
+                c = randulongint(1 << (i+10), 1 << (i+11));
             } while (!millerrabin(c));
             if (count)
                 printf("%u, ", c);
