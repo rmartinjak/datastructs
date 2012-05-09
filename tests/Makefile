@@ -1,5 +1,6 @@
 CC = cc
-CPPFLAGS = -ansi -pedantic -Wall -g
+CPPFLAGS =
+CFLAGS = -ansi -pedantic -Wall -g
 
 TESTS = test_ht test_bst
 
