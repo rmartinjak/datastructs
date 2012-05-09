@@ -40,7 +40,7 @@ static void teardown(void)
     bst_free(t, NULL);
 }
 
-START_TEST (test_bst_nodup)
+START_TEST (test_bst)
 {
     long x;
     size_t i, j;
@@ -96,7 +96,7 @@ Suite *bst_suite(void)
 
     tcase_add_checked_fixture (tc_simple, setup, teardown);
 
-    tcase_add_test(tc_simple, test_bst_nodup);
+    tcase_add_test(tc_simple, test_bst);
 
     suite_add_tcase(s, tc_simple);
 
