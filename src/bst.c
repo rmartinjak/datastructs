@@ -429,6 +429,12 @@ int bst_insert(bst *t, long key, void *data)
     bstnode *n;
     bstnode *ins;
 
+    if (t->root && IS_LEAF(t->root))
+    {
+        bstnode_free(t->root, NULL);
+        t->root = NULL;
+    }
+
     if (!t->root)
     {
         t->root = bstnode_init(key, data, NULL);
@@ -501,8 +507,8 @@ void *bst_get(bst *t, long key)
 {
     bstnode *n;
 
-    if (!t || !t->root)
-        return 0;
+    if (!t || !t->root || IS_LEAF(t->root))
+        return NULL;
 
     n = bst_findpath(t->root, key);
 

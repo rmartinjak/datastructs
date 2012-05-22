@@ -85,6 +85,10 @@ START_TEST (test_bst)
     fail_unless(bst_contains(t, 1337));
     bst_remove(t, 1337, NULL);
     fail_unless(!bst_contains(t, 1337));
+    bst_insert(t, 1337, NULL);
+    fail_unless(bst_contains(t, 1337));
+    bst_remove(t, 1337, NULL);
+    fail_unless(!bst_contains(t, 1337));
 }
 END_TEST
 
