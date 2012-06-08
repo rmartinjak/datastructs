@@ -51,8 +51,8 @@ $(SRCDIR)/pgroups.h : genpgroups
 	@echo generating pgroups.h
 	@./$< > $@
 
-genpgroups: $(SRCDIR)/genpgroups.c
-	@$(CC) $(CPPFLAGS) $(CFLAGS) $< -o genpgroups
+genpgroups: $(SRCDIR)/genpgroups.c $(SRCDIR)/mr.c
+	@$(CC) $(CPPFLAGS) $(CFLAGS) $? -o genpgroups
 
 tests : archive
 	@$(MAKE) $(MAKEFLAGS) -C tests all
