@@ -362,7 +362,7 @@ static void bst_rotate_##dir(bst *t, bstnode *n)    \
 {                                                   \
     bstnode *p;                                     \
                                                     \
-    if (!n)                                         \
+    if (!n || !n->other)                            \
         return;                                     \
                                                     \
     p = n->other;                                   \
