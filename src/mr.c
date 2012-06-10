@@ -75,7 +75,7 @@ uintmax_t randumax(uintmax_t min, uintmax_t max)
         rnd |= rand();
     }
 
-    return min + max * ((double)rnd / UINTMAX_MAX);
+    return min + (max - min + 1) * ((double)rnd / UINTMAX_MAX);
 }
 
 int isprime_mr(uintmax_t n)
