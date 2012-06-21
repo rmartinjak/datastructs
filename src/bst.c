@@ -372,7 +372,8 @@ static void bst_rotate_##dir(bst *t, bstnode *n)    \
         t->root = p;                                \
         p->parent = NULL;                           \
     }                                               \
-    else {                                          \
+    else                                            \
+    {                                               \
         if (IS_LEFT_CHILD(n))                       \
             n->parent->left = p;                    \
         else                                        \
@@ -438,9 +439,9 @@ int bst_insert(bst *t, long key, void *data)
     if (!t->root)
     {
         t->root = bstnode_init(key, data, NULL);
-        if (!t->root) {
+        if (!t->root)
             return -1;
-        }
+
         t->root->color = BLACK;
         return 0;
     }
@@ -462,7 +463,8 @@ int bst_insert(bst *t, long key, void *data)
         n->left = ins;
     }
     /* new data greater -> insert right */
-    else {
+    else
+    {
         free(n->right);
         n->right = ins;
     }

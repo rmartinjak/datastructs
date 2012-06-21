@@ -35,17 +35,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* structs */
 /*=========*/
 
-typedef struct qnode qnode;
 struct qnode
 {
     void *data;
-    qnode *next;
+    struct qnode *next;
 };
 
 struct queue
 {
-    qnode *head;
-    qnode *tail;
+    struct qnode *head;
+    struct qnode *tail;
 };
 
 
@@ -55,9 +54,10 @@ struct queue
 
 queue *q_init(void)
 {
-    queue *q = malloc(sizeof (queue));
+    queue *q = malloc(sizeof *q);
 
-    if (q) {
+    if (q)
+    {
         q->head = NULL;
         q->tail = NULL;
     }
@@ -68,7 +68,8 @@ queue *q_init(void)
 void q_clear(queue *q, void (*callback)(void*))
 {
     void *del;
-    while (q->head) {
+    while (q->head)
+    {
         del = q_dequeue(q);
         if (callback)
             callback(del);
@@ -83,11 +84,10 @@ void q_free(queue *q, void (*callback)(void*))
 
 int q_enqueue(queue *q, void *data)
 {
-    qnode *ins;
-    ins = malloc(sizeof (qnode));
-    if (!ins) {
+    struct qnode *ins = malloc(sizeof *ins);
+    if (!ins)
         return -1;
-    }
+
     ins->data = data;
     ins->next = NULL;
 
@@ -102,11 +102,10 @@ int q_enqueue(queue *q, void *data)
 
 int q_requeue(queue *q, void *data)
 {
-    qnode *ins;
-    ins = malloc(sizeof (qnode));
-    if (!ins) {
+    struct qnode *ins = malloc(sizeof *ins);
+    if (!ins)
         return -1;
-    }
+
     ins->data = data;
     ins->next = q->head;
 
@@ -121,7 +120,7 @@ int q_requeue(queue *q, void *data)
 void *q_dequeue(queue *q)
 {
     void *ret;
-    qnode *del;
+    struct qnode *del;
 
     if (!q->head)
         return NULL;
@@ -146,8 +145,9 @@ int q_empty(queue *q)
 
 int q_contains(queue *q, const void *data, int(*cmp)(const void*, const void*))
 {
-    qnode *p;
-    for (p = q->head; p; p = p->next) {
+    struct qnode *p;
+    for (p = q->head; p; p = p->next)
+    {
         if (cmp(data, p->data) == 0)
             return 1;
     }
@@ -157,8 +157,9 @@ int q_contains(queue *q, const void *data, int(*cmp)(const void*, const void*))
 
 int q_contains2(queue *q, const void *data, int(*cmp)(const void*, const void*, void*), void *arg)
 {
-    qnode *p;
-    for (p = q->head; p; p = p->next) {
+    struct qnode *p;
+    for (p = q->head; p; p = p->next)
+    {
         if (cmp(data, p->data, arg) == 0)
             return 1;
     }

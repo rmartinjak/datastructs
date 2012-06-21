@@ -91,8 +91,8 @@ struct htbucket_item
 static hash_t ht_strhash(const void *key, const void *arg);
 static int ht_strcmp(const void *key1, const void *key2, const void *arg);
 
-static int ht_resize(hashtable *ht, int n);
-static htbucket *ht_alloc_buckets(int n);
+static int ht_resize(hashtable *ht, int grow);
+static htbucket *ht_alloc_buckets(size_t n);
 
 
 /*--------------*/
@@ -141,30 +141,33 @@ static int htbucket_insert(htbucket *b, void *key, void *data,
 {
     struct htbucket_item *p, *ins;
 
-
     /* initialize item */
-    ins = malloc(sizeof(struct htbucket_item));
-    if (!ins) {
+    ins = malloc(sizeof *ins);
+    if (!ins)
         return HT_ERROR;
-    }
+
     ins->key = key;
     ins->data = data;
     ins->next = NULL;
 
     /* empty htbucket */
-    if (!b->root) {
+    if (!b->root)
+    {
         b->root = ins;
         return HT_OK;
     }
     /* compare with root */
-    else if (cmp(key, b->root->key, cmp_arg) == 0) {
+    else if (cmp(key, b->root->key, cmp_arg) == 0)
+    {
         free(ins);
         return HT_EXIST;
     }
 
     /* compare with child until p is last item */
-    for (p = b->root; p->next; p = p->next) {
-        if (cmp(key, p->next->key, cmp_arg) == 0) {
+    for (p = b->root; p->next; p = p->next)
+    {
+        if (cmp(key, p->next->key, cmp_arg) == 0)
+        {
             free(ins);
             return HT_EXIST;
         }
@@ -179,10 +182,10 @@ static void *htbucket_get(htbucket *b, const void *key,
 {
     struct htbucket_item *p;
 
-    for (p = b->root; p; p = p->next) {
-        if (cmp(key, p->key, cmp_arg) == 0) {
+    for (p = b->root; p; p = p->next)
+    {
+        if (cmp(key, p->key, cmp_arg) == 0)
             return p->data;
-        }
     }
     return NULL;
 }
@@ -195,7 +198,8 @@ static int htbucket_remove(htbucket *b, void **data, const void *key,
 
     if (!b->root)
         return HT_ERROR;
-    else if (cmp(key, b->root->key, cmp_arg) == 0) {
+    else if (cmp(key, b->root->key, cmp_arg) == 0)
+    {
         del = b->root;
         b->root = del->next;
         *data = del->data;
@@ -204,8 +208,10 @@ static int htbucket_remove(htbucket *b, void **data, const void *key,
         return HT_OK;
     }
 
-    for (p = b->root; p->next; p = p->next) {
-        if (cmp(key, p->next->key, cmp_arg) == 0) {
+    for (p = b->root; p->next; p = p->next)
+    {
+        if (cmp(key, p->next->key, cmp_arg) == 0)
+        {
             del = p->next;
             p->next = del->next;
             *data = del->data;
@@ -221,7 +227,8 @@ static void *htbucket_pop(htbucket *b, void **key, void **data)
 {
     struct htbucket_item *p;
 
-    if (!b->root) {
+    if (!b->root)
+    {
         *key = NULL;
         *data = NULL;
         return NULL;
@@ -243,7 +250,8 @@ static void htbucket_clear(htbucket *b, void (*free_key)(void*),  void (*free_da
 
     p = b->root;
 
-    while (p) {
+    while (p)
+    {
         del = p;
         p = p->next;
 
@@ -298,7 +306,7 @@ static int ht_strcmp(const void *key1, const void *key2, const void *arg)
 /* internal management functions */
 /*===============================*/
 
-static htbucket *ht_alloc_buckets(int n)
+static htbucket *ht_alloc_buckets(size_t n)
 {
     htbucket *ret;
     htbucket *p;
@@ -323,12 +331,14 @@ static int ht_resize(hashtable *ht, int grow)
     htbucket *newbuckets;
     void *key, *data;
 
-    if (grow) {
+    if (grow)
+    {
         if (ht->pgroup >= PGROUP_COUNT-1)
             return HT_OK;
         pg = ht->pgroup+1;
     }
-    if (!grow) {
+    else
+    {
         if (ht->pgroup == 0)
             return HT_OK;
         pg = ht->pgroup-1;
@@ -336,18 +346,21 @@ static int ht_resize(hashtable *ht, int grow)
 
     n = PRIME(pg);
 
-    if ((newbuckets = ht_alloc_buckets(n)) == NULL) {
+    if ((newbuckets = ht_alloc_buckets(n)) == NULL)
+    {
         return HT_ERROR;
     }
 
-    for (i=0; i<ht->n_buckets; ++i) {
-        while (1) {
+    for (i=0; i<ht->n_buckets; ++i)
+    {
+        while (1)
+        {
             htbucket_pop(ht->buckets + i, &key, &data);
             /* no more items in bucket */
             if (!key)
                 break;
             /* store in new bucket */
-            k = (size_t)ht->hash(key, NULL) % n;
+            k = ht->hash(key, NULL) % n;
 
             /* meh, errors here are ignored
              * ENOMEM occurs, you have other problems
@@ -432,7 +445,8 @@ int ht_init_f(hashtable **ht, hash_t (*hashfunc)(const void*, const void*),
 
     p = malloc(sizeof *p);
 
-    if (!p) {
+    if (!p)
+    {
         *ht = NULL;
         return HT_ERROR;
     }
@@ -483,9 +497,9 @@ void ht_free_f(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*))
         return;
 
     n = ht->n_buckets;
-    while (n--) {
+    while (n--)
         htbucket_clear(ht->buckets + n, free_key, free_data);
-    }
+
     free(ht->buckets);
 
     free(ht);
@@ -499,9 +513,8 @@ void ht_free_f(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*))
 int ht_set_a(hashtable *ht, void *key, void *data,
         const void *hash_arg, const void *cmp_arg)
 {
-    if (!ht || !key || !data) {
+    if (!ht || !key || !data)
         return HT_ERROR;
-    }
     return ht_set_fa(ht, key, data, ht->free_key, ht->free_data, hash_arg, cmp_arg);
 }
 
@@ -511,12 +524,12 @@ int ht_set_fa(hashtable *ht, void *key, void *data,
 {
     void *data_old;
 
-    if (!ht || !key || !data) {
+    if (!ht || !key || !data)
         return HT_ERROR;
-    }
 
     data_old = ht_remove_fa(ht, key, free_key, hash_arg, cmp_arg);
-    if (data_old) {
+    if (data_old)
+    {
         FREE_DATA(data_old);
     }
 
@@ -534,15 +547,15 @@ int ht_insert_a(hashtable *ht, void *key, void *data,
     int res;
     hash_t k;
 
-    if (!ht || !key) {
+    if (!ht || !key)
         return HT_ERROR;
-    }
 
-    k = (size_t)ht->hash(key, hash_arg) % ht->n_buckets;
+    k = ht->hash(key, hash_arg) % ht->n_buckets;
 
     res = htbucket_insert(ht->buckets + k, key, data, ht->cmp, cmp_arg);
 
-    if (res == HT_OK) {
+    if (res == HT_OK)
+    {
         ht->n_items++;
         if (ht->n_items > ht->n_buckets)
             ht_resize(ht, 1);
@@ -561,10 +574,10 @@ void *ht_get_a(hashtable *ht, const void *key,
 {
     hash_t k;
 
-    if (!ht || !key) {
+    if (!ht || !key)
         return NULL;
-    }
-    k = (size_t)ht->hash(key, hash_arg) % ht->n_buckets;
+
+    k = ht->hash(key, hash_arg) % ht->n_buckets;
     return htbucket_get(ht->buckets + k, key, ht->cmp, cmp_arg);
 }
 
@@ -590,19 +603,18 @@ void *ht_remove_fa(hashtable *ht, const void *key,
     int res;
     void *data;
 
-    if (!ht || !key) {
+    if (!ht || !key)
         return NULL;
-    }
 
-    k = (size_t)ht->hash(key, hash_arg) % ht->n_buckets;
+    k = ht->hash(key, hash_arg) % ht->n_buckets;
     res = htbucket_remove(ht->buckets + k, &data, key, ht->cmp, cmp_arg, free_key);
 
-    if (res == HT_OK) {
+    if (res == HT_OK)
+    {
         ht->n_items--;
         /* items < buckets/4 -> resize */
-        if (ht->n_items * 4 < ht->n_buckets) {
+        if (ht->n_items * 4 < ht->n_buckets)
             ht_resize(ht, 0);
-        }
         return data;
     }
 
@@ -626,17 +638,16 @@ void *ht_pop(hashtable *ht, void **key, void **data)
 {
     size_t i;
 
-    if (!ht || !key || !data) {
+    if (!ht || !key || !data)
         return NULL;
-    }
 
     if (ht_empty(ht))
         return NULL;
 
-    for (i = 0; i < ht->n_buckets; i++) {
-        if (!htbucket_empty(ht->buckets + i)) {
+    for (i = 0; i < ht->n_buckets; i++)
+    {
+        if (!htbucket_empty(ht->buckets + i))
             return htbucket_pop(ht->buckets + i, key, data);
-        }
     }
     return NULL;
 }
@@ -649,9 +660,10 @@ void *ht_pop(hashtable *ht, void **key, void **data)
 /* create iterator */
 htiter *ht_iter(hashtable *ht)
 {
-    htiter *it;
+    htiter *it = malloc(sizeof *it);
 
-    if ((it = malloc(sizeof(htiter)))) {
+    if (it)
+    {
         it->ht = ht;
         it->b = 0;
         it->cur = NULL;
@@ -664,11 +676,11 @@ htiter *ht_iter(hashtable *ht)
 int htiter_next(htiter *it, void **key, void **data)
 {
     /* still another item in current bucket */
-    if (it->cur && it->cur->next) {
+    if (it->cur && it->cur->next)
         it->cur = it->cur->next;
-    }
     /* no more items in bucket */
-    else {
+    else
+    {
         /* if !it->cur = fresh iterator, else use next bucket */
         if (it->cur)
             it->b++;
@@ -678,7 +690,8 @@ int htiter_next(htiter *it, void **key, void **data)
             it->b++;
 
         /* no more buckets! */
-        if (it->b >= it->ht->n_buckets) {
+        if (it->b >= it->ht->n_buckets)
+        {
             if (key) *key = NULL;
             if (data) *data = NULL;
             return 0;

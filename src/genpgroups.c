@@ -15,10 +15,10 @@ int main(int argc, char **argv)
     for (i = 0; i < PGROUP_COUNT; i++) {
         printf("unsigned long primes%u[] = { ", i);
         count = PGROUP_ELEMENTS;
-        while (count--) {
-            do {
-                c = randumax(1 << (i+10), 1 << (i+11));
-            } while (!isprime_mr(c));
+        while (count--)
+        {
+            do c = randumax(1 << (i+10), 1 << (i+11));
+            while (!isprime_mr(c));
 
             printf(count ? "%u, " : "%u ", c);
         }
